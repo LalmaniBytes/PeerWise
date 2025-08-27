@@ -1,0 +1,66 @@
+import mongoose from "mongoose";
+
+mongoose.connect("mongodb://localhost:27017/PeerWise");
+
+const responseSchema = new mongoose.Schema(
+  {
+    thread: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Thread",
+      required: true,
+    },
+    content: { type: String, required: true },
+    author: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    thumbs_up: { type: Number, default: 0 },
+    thumbs_down: { type: Number, default: 0 },
+    youtube_url: { type: String, default: "" },
+    voters: [
+      {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        voteType: { type: String, enum: ["up", "down"] },
+      },
+    ],
+  },
+  { timestamps: true }
+);
+
+const Response = mongoose.model("Response", responseSchema);
+
+const threadSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true },
+    description: { type: String, required: true },
+    author: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+  },
+  { timestamps: true }
+);
+const Thread = mongoose.model("Thread", threadSchema);
+
+const userSchema = new mongoose.Schema({
+  username: { type: String, required: true },
+  password: { type: String, required: true },
+  email: { type: String, required: true },
+  credits: { type: Number, default: 0 },
+  rank: { type: String, default: "Bronze" },
+});
+const userModel = mongoose.model("User", userSchema);
+
+const rewardSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  description: { type: String },
+  cost: { type: Number, required: true }, // credits required to redeem
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+const Reward = mongoose.model("Reward", rewardSchema);
+
+export { Thread, Response, Reward };
+export default userModel;
