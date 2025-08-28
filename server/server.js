@@ -17,20 +17,10 @@ const allowedOrigins = [
   "https://peerwise-1.onrender.com",
 ];
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("CORS not allowed"));
-      }
-    },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
+app.use(cors({
+    origin: ["http://localhost:3000", "https://peerwise-1.onrender.com"],
+    credentials: true
+  }));
 app.options("*", cors());
 
 env.config();
