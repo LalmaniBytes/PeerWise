@@ -659,7 +659,8 @@ const Dashboard = () => {
                   </CardHeader>
                   <CardContent>
                     <p className="text-gray-300 line-clamp-2">{thread.description}</p>
-                  </CardContent>
+                  </
+                  CardContent>
                 </Card>
               ))}
             </div>
