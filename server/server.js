@@ -43,6 +43,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/signup", signup);
+
 app.use("/login", login);
 app.use("/profile", profile);
 app.use("/threads", threads);
