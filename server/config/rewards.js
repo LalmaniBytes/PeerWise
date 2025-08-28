@@ -1,6 +1,7 @@
 import express from "express";
 import { authenticateToken } from "../middleware/jwtAuth.js";
 import userModel from "./db.js"; // User model
+import { Reward} from "./db.js"
 
 const rewardRouter = express.Router();
 

@@ -26,7 +26,7 @@ const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      axios.defaults.headers.common['Authorization'] =  `Bearer ${token}`;
       fetchProfile();
     }
   }, [token]);

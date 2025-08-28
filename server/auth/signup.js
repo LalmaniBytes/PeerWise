@@ -32,6 +32,7 @@ signup.post('/', async (req, res) => {
       { expiresIn: "20h" }
     );
 
+    console.log("Token : " , token)
     // Send token and user info (excluding password)
     res.status(201).json({
       token,

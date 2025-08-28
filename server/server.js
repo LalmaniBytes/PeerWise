@@ -31,8 +31,6 @@ app.use(
   })
 );
 
-// Handle preflight
-app.options("*", cors());
 
 env.config();
 app.use(express.json());
@@ -44,11 +42,16 @@ app.get("/", (req, res) => {
 });
 
 app.use("/signup", signup);
+console.log("/signup")
 app.use("/login", login);
+console.log("/login")
 app.use("/profile", profile);
+console.log("/profile")
 app.use("/threads", threads);
+console.log("/threads")
 app.use("/", router);
 app.use("/rewards", rewardRouter);
+console.log("/rewardsRouter")
 
 app.listen(PORT, () => {
   console.log("Listening to the server !");
