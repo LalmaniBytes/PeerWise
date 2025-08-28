@@ -13,7 +13,7 @@ const app = express();
 app.use(helmet());
 
 const allowedOrigins = [
-  "http://localhost:5050",
+  "http://localhost:3000",
   "https://peerwise-1.onrender.com",
 ];
 
@@ -31,7 +31,7 @@ app.use(
     credentials: true,
   })
 );
-
+app.options("*", cors());
 
 env.config();
 app.use(express.json());
