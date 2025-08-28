@@ -10,23 +10,25 @@ import router from "./routes/forum.js";
 import rewardRouter from "./config/rewards.js";
 
 const app = express();
-app.use(helmet());
 
 const allowedOrigins = [
   "http://localhost:3000",
   "https://peerwise-1.onrender.com",
 ];
 
-app.use(cors({
-    origin: ["http://localhost:3000", "https://peerwise-1.onrender.com"],
-    credentials: true
-  }));
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.options("*", cors());
 
 env.config();
+app.use(helmet());
 app.use(express.json());
-
-const PORT = process.env.PORT;
 
 app.get("/", (req, res) => {
   res.send("Listning to the route !");
@@ -39,7 +41,7 @@ app.use("/profile", profile);
 app.use("/threads", threads);
 app.use("/", router);
 app.use("/rewards", rewardRouter);
-
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log("Listening to the server !");
+  console.log(`✅ Server running on port ${PORT}`);
 });
