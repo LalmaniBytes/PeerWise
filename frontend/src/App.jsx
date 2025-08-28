@@ -43,11 +43,7 @@ const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post(`${API_URL}/login`, { email, password }, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`
-        }
-      });
+      const response = await axios.post(`${API_URL}/login`, { email, password });
       const { token, user: userData } = response.data;
       setToken(token);
       setUser(userData);
