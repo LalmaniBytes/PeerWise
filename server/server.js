@@ -1,33 +1,50 @@
-import express from 'express';
-import env from 'dotenv'
-import cors from 'cors'
-import helmet from 'helmet'
-import signup from './auth/signup.js'
-import login from './auth/login.js'
-import profile from './auth/profile.js'
-import threads from './config/threads.js'
-import router from './routes/forum.js'
-import rewardRouter from './config/rewards.js'
+import express from "express";
+import env from "dotenv";
+import cors from "cors";
+import helmet from "helmet";
+import signup from "./auth/signup.js";
+import login from "./auth/login.js";
+import profile from "./auth/profile.js";
+import threads from "./config/threads.js";
+import router from "./routes/forum.js";
+import rewardRouter from "./config/rewards.js";
 
 const app = express();
-app.use(helmet())
-app.use(cors())
-env.config()
+app.use(helmet());
+
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://peerwise-1.onrender.com",
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
+env.config();
 app.use(express.json());
 
-const PORT = process.env.PORT 
+const PORT = process.env.PORT;
 
-app.get('/' , (req,res)=>{
-    res.send('Listning to the route !')
-})
+app.get("/", (req, res) => {
+  res.send("Listning to the route !");
+});
 
-app.use('/signup' ,signup)
-app.use('/login' , login);
-app.use('/profile' , profile)
-app.use('/threads' , threads)
-app.use('/' , router)
-app.use('/rewards' , rewardRouter)
+app.use("/signup", signup);
+app.use("/login", login);
+app.use("/profile", profile);
+app.use("/threads", threads);
+app.use("/", router);
+app.use("/rewards", rewardRouter);
 
-app.listen(PORT , ()=>{
-    console.log('Listening to the server !')
-})
+app.listen(PORT, () => {
+  console.log("Listening to the server !");
+});
