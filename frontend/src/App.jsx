@@ -14,7 +14,8 @@ import { Toaster } from "./components/ui/sonner";
 import { ThumbsUp, ThumbsDown, Plus, User, Trophy, Sparkles, Zap, Play, Crown, Medal, Star, Gem, Award } from "lucide-react";
 
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+// const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_API_URL;
 
 // Auth Context
 const AuthContext = React.createContext();
@@ -32,7 +33,7 @@ const AuthProvider = ({ children }) => {
 
   const fetchProfile = async () => {
     try {
-      const response = await axios.get('/profile');
+      const response = await axios.get(`${API_URL}/profile`);
       setUser(response.data);
     } catch (error) {
       console.error('Failed to fetch profile:', error);
@@ -42,7 +43,7 @@ const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('/login', { email, password }, {
+      const response = await axios.post(`${API_URL}/login`, { email, password }, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`
         }
@@ -62,7 +63,7 @@ const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await axios.post('/signup', userData);
+      const response = await axios.post(`${API_URL}/signup`, userData);
       const { token, user: newUser } = response.data;
       setToken(token);
       setUser(newUser);
@@ -268,7 +269,7 @@ const CreateThreadDialog = ({ onThreadCreated }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/threads', formData);
+      await axios.post(`${API_URL}/threads`, formData);
       toast.success("Problem posted! The community will help you soon! 🚀");
       setFormData({ title: '', description: '' });
       setOpen(false);
@@ -344,7 +345,7 @@ const Dashboard = () => {
 
   const fetchThreads = async () => {
     try {
-      const response = await axios.get('/threads');
+      const response = await axios.get(`${API_URL}/threads`);
       setThreads(response.data);
     } catch (error) {
       console.error('Failed to fetch threads:', error);
@@ -354,7 +355,7 @@ const Dashboard = () => {
   const fetchResponses = async (threadId) => {
     console.log("ThreadId : ", threadId)
     try {
-      const response = await axios.get(`/threads/${threadId}/responses`);
+      const response = await axios.get(`${API_URL}/threads/${threadId}/responses`);
       console.log(response.data)
       setResponses(response.data);
     } catch (error) {
@@ -364,7 +365,7 @@ const Dashboard = () => {
 
   const fetchRewards = async () => {
     try {
-      const response = await axios.get('/rewards');
+      const response = await axios.get(`${API_URL}/rewards`);
       console.log(response.data)
       setRewards(response.data);
     } catch (error) {
@@ -382,7 +383,7 @@ const Dashboard = () => {
     if (!newResponse.trim()) return;
 
     try {
-      await axios.post(`/threads/${selectedThread._id}/responses`, {
+      await axios.post(`${API_URL}/threads/${selectedThread._id}/responses`, {
         content: newResponse
       });
       toast.success("Response posted! 💡");
@@ -396,7 +397,7 @@ const Dashboard = () => {
   const handleVote = async (responseId, voteType) => {
     console.log("Your are on the correct path !")
     try {
-      await axios.post(`/threads/responses/${responseId}/vote`, {
+      await axios.post(`${API_URL}/threads/responses/${responseId}/vote`, {
         vote_type: voteType
       });
       toast.success(voteType === 'up' ? "Thanks for the thumbs up! 👍" : "Thanks for the feedback! 👎");
@@ -416,7 +417,7 @@ const Dashboard = () => {
 
   const handleRewardRedeem = async (rewardId) => {
     try {
-      const response = await axios.post(`/rewards/${rewardId}/redeem`);
+      const response = await axios.post(`${API_URL}/rewards/${rewardId}/redeem`);
       toast.success("Reward redeemed successfully! 🎉");
 
       // Refresh user profile to update credits
