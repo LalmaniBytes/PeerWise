@@ -26,7 +26,7 @@ const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (token) {
-      axios.defaults.headers.common['Authorization'] =  `Bearer ${token}`;
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       fetchProfile();
     }
   }, [token]);
@@ -43,12 +43,22 @@ const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post(`${API_URL}/login`, { email, password });
+      const response = await axios.post(
+        `${API_URL}/login`,
+        { email, password },
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
       const { token, user: userData } = response.data;
       setToken(token);
       setUser(userData);
-      localStorage.setItem('token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      localStorage.setItem("token", token);
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
       toast.success("Welcome back to PeerWise! 🎉");
       return true;
     } catch (error) {
@@ -57,14 +67,25 @@ const AuthProvider = ({ children }) => {
     }
   };
 
+
   const register = async (userData) => {
     try {
-      const response = await axios.post(`${API_URL}/signup`, userData);
+      const response = await axios.post(
+        `${API_URL}/signup`,
+        userData,
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
       const { token, user: newUser } = response.data;
       setToken(token);
       setUser(newUser);
-      localStorage.setItem('token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      localStorage.setItem("token", token);
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
       toast.success("Welcome to PeerWise! 🎉");
       return true;
     } catch (error) {
