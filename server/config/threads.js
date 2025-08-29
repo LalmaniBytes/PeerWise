@@ -11,7 +11,7 @@ threadRouter.get("/", async (req, res) => {
   try {
     const threads = await Thread.find()
       .populate("author", "username")
-      .sort({ created_at: -1 }) // ✅ use correct field name
+      .sort({ createdAt: -1 }) // ✅ use correct field name
       .lean();
 
     const threadsWithExtras = await Promise.all(

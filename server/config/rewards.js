@@ -8,6 +8,7 @@ const rewardRouter = express.Router();
 rewardRouter.get("/", async (req, res) => {
   try {
     const rewards = await Reward.find().sort({ createdAt: -1 }).lean();
+    console.log("Rewards : ", rewards)
     res.json(rewards);
   } catch (err) {
     console.error("Error fetching rewards:", err);
