@@ -45,7 +45,7 @@ app.get("/", (req, res) => {
 
 app.use("/signup", signup);
 
-app.use("/login", login);
+app.use("/login",cors(corsOptions), login);
 app.use("/profile", profile);
 app.use("/threads", threads);
 app.use("/", router);
