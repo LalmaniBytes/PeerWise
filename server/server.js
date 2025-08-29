@@ -10,32 +10,16 @@ import router from "./routes/forum.js";
 import rewardRouter from "./config/rewards.js";
 
 const app = express();
+env.config();
 
 const allowedOrigins = [
   "http://localhost:3000",
   "https://peerwise-1.onrender.com",
 ];
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // allow requests with no origin (like mobile apps or curl)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
-
+app.use(cors());
 app.options("*", cors());
 
-env.config();
 app.use(helmet());
 app.use(express.json());
 
@@ -48,6 +32,9 @@ app.use((req, res, next) => {
     return res.sendStatus(200);
   }
   next();
+});
+app.get("/test-cors", (req, res) => {
+  res.json({ msg: "CORS is working 🎉" });
 });
 
 app.get("/", (req, res) => {
