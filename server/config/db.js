@@ -1,6 +1,15 @@
 import mongoose from "mongoose";
 
-mongoose.connect("mongodb://localhost:27017/PeerWise");
+const uri =
+  "mongodb+srv://lalmanimishra1508:Lalmani1508@peerwise.6o0g4sv.mongodb.net/PeerWise?retryWrites=true&w=majority";
+
+mongoose
+  .connect(uri, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("✅ Connected to MongoDB Atlas via Mongoose"))
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 const responseSchema = new mongoose.Schema(
   {
@@ -9,6 +18,7 @@ const responseSchema = new mongoose.Schema(
       ref: "Thread",
       required: true,
     },
+
     content: { type: String, required: true },
     author: {
       type: mongoose.Schema.Types.ObjectId,
