@@ -12,10 +12,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { toast } from "sonner";
 import { Toaster } from "./components/ui/sonner";
 import { ThumbsUp, ThumbsDown, Plus, User, Trophy, Sparkles, Zap, Play, Crown, Medal, Star, Gem, Award } from "lucide-react";
-
+import { io } from "socket.io-client";
 
 // const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API_URL = process.env.REACT_APP_API_URL;
+const socket = io(API_URL); // API_URL = backend server
 
 // Auth Context
 const AuthContext = React.createContext();
@@ -354,6 +355,34 @@ const Dashboard = () => {
   const [newResponse, setNewResponse] = useState('');
   const [rewards, setRewards] = useState([]);
   const { user, fetchProfile } = useAuth();
+  useEffect(() => {
+    // Join rooms dynamically for selected thread
+    if (selectedThread) {
+      socket.emit("join-thread", selectedThread._id);
+    }
+
+    // Listen for new responses
+    socket.on("new-response", (response) => {
+      if (selectedThread && response.thread === selectedThread._id) {
+        setResponses((prev) => [response, ...prev]);
+      }
+    });
+
+    // Listen for vote updates
+    socket.on("update-votes", (voteData) => {
+      setResponses((prev) =>
+        prev.map((r) => (r._id === voteData._id ? { ...r, ...voteData } : r))
+      );
+    });
+
+    return () => {
+      if (selectedThread) {
+        socket.emit("leave-thread", selectedThread._id);
+      }
+      socket.off("new-response");
+      socket.off("update-votes");
+    };
+  }, [selectedThread]);
 
   useEffect(() => {
     fetchThreads();

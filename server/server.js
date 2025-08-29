@@ -8,6 +8,8 @@ import profile from "./auth/profile.js";
 import threads from "./config/threads.js";
 import router from "./routes/forum.js";
 import rewardRouter from "./config/rewards.js";
+import http from "http";
+import { Server } from "socket.io";
 
 const app = express();
 env.config();
@@ -45,12 +47,42 @@ app.get("/", (req, res) => {
 
 app.use("/signup", signup);
 
-app.use("/login",cors(corsOptions), login);
+app.use("/login", cors(corsOptions), login);
 app.use("/profile", profile);
 app.use("/threads", threads);
 app.use("/", router);
 app.use("/rewards", rewardRouter);
+
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: ["http://localhost:3000", "https://peerwise-1.onrender.com"],
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
+
+// Handle WebSocket connections
+io.on("connection", (socket) => {
+  console.log("🔌 User connected:", socket.id);
+
+  // When frontend joins a specific thread room
+  socket.on("join-thread", (threadId) => {
+    socket.join(threadId);
+    console.log(`✅ User ${socket.id} joined thread ${threadId}`);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("❌ User disconnected:", socket.id);
+  });
+});
+
+// ✅ Export io so routes can use it
+export { io };
+
+// --- Start server ---
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });

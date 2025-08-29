@@ -2,7 +2,8 @@ import express, { response } from "express";
 import mongoose from "mongoose";
 import { authenticateToken } from "../middleware/jwtAuth.js"; // your auth middleware path
 import User from "./db.js"; // user model path
-import { Response, Thread  } from "./db.js";
+import { Response, Thread } from "./db.js";
+import { io } from "../server.js";
 
 const threadRouter = express.Router();
 
@@ -83,15 +84,15 @@ threadRouter.post("/", authenticateToken, async (req, res) => {
 // GET /threads/:id/responses
 threadRouter.get("/:id/responses", async (req, res) => {
   try {
-    console.log("From params:", req.params.id);
+    // console.log("From params:", req.params.id);
 
     if (!req.params.id || req.params.id === "undefined") {
-      console.log("id: ", req.params.id);
+      // console.log("id: ", req.params.id);
       return res
         .status(400)
         .json({ detail: "Invalid or missing thread ID in request." });
     }
-    console.log("Fetching responses for thread ID:", req.params.id);
+    // console.log("Fetching responses for thread ID:", req.params.id);
 
     const responses = await Response.find({ thread: req.params.id })
       .populate("author", "username")
@@ -124,14 +125,24 @@ threadRouter.post("/:id/responses", authenticateToken, async (req, res) => {
   const { id } = req.params;
   const voteType = vote_type;
   // const voteType = vote_type;
-  console.log("Vote route hit");
-  console.log("Params:", req.params);
-  console.log("Body:", req.body);
-  console.log("User:", req.user);
+  // console.log("Vote route hit");
+  // console.log("Params:", req.params);
+  // console.log("Body:", req.body);
+  // console.log("User:", req.user);
   try {
     const newResponse = await Response.create({
       content,
       author: req.user.id,
+      thread: req.params.id,
+    });
+    io.to(req.params.id).emit("new-response", {
+      _id: newResponse._id,
+      content: newResponse.content,
+      author_username: newResponse.author.username,
+      createdAt: newResponse.createdAt,
+      thumbs_up: newResponse.thumbs_up,
+      thumbs_down: newResponse.thumbs_down,
+      voters: newResponse.voters,
       thread: req.params.id,
     });
     await newResponse.populate("author", "username");
@@ -179,7 +190,7 @@ threadRouter.post(
         (v) => v.user?.toString() === userId
       );
       console.log("Exsting user index : ", existingVoteIndex);
-      const selfVoter = await userId === response.author.toString();
+      const selfVoter = (await userId) === response.author.toString();
       if (selfVoter) {
         return res
           .status(403)
@@ -216,7 +227,12 @@ threadRouter.post(
       }
 
       await response.save();
-
+      io.to(response.thread.toString()).emit("update-votes", {
+        _id: response._id,
+        thumbs_up: response.thumbs_up,
+        thumbs_down: response.thumbs_down,
+        voters: response.voters,
+      });
       res.json({
         _id: response._id,
         thumbs_up: response.thumbs_up,

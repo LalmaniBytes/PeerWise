@@ -16,7 +16,7 @@ profile.get("/", authenticateToken, async (req, res) => {
   try {
     const user = await userModel.findById(req.user.id).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
-    console.log("user :", user);
+    // console.log("user :", user);
     const responses = await Response.find().populate("author");
     let likes = 0;
     let dislikes = 0;
@@ -27,13 +27,13 @@ profile.get("/", authenticateToken, async (req, res) => {
         dislikes = response.thumbs_down;
       }
     });
-    console.log("Likes : ", likes);
-    console.log("Dislikes ", dislikes);
+    // console.log("Likes : ", likes);
+    // console.log("Dislikes ", dislikes);
     const credits = likes * 5 + -2 * dislikes;
     user.credits = credits;
     const rank = calculateRank(credits)
     user.rank = rank;
-    console.log("Rank : " , rank)
+    // console.log("Rank : " , rank)
     await user.save();
 
     res.json(user);
