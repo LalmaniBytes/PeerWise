@@ -396,6 +396,13 @@ const Dashboard = () => {
     socket.on("new-response", (response) => {
       // no need to check response.thread if room is joined
       setResponses((prev) => [response, ...prev]);
+      setThreads((prevThreads) =>
+        prevThreads.map((t) =>
+          t._id === response.thread
+            ? { ...t, response_count: (t.response_count || 0) + 1 }
+            : t
+        )
+      );
     });
 
     socket.on("update-votes", (voteData) => {
