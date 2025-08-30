@@ -472,7 +472,10 @@ const Dashboard = () => {
       });
       toast.success("Response posted! 💡");
       setNewResponse('');
-      fetchResponses(selectedThread._id);
+      setSelectedThread((prev) =>
+        prev ? { ...prev, response_count: prev.response_count + 1 } : prev
+      );
+      // fetchResponses(selectedThread._id);
     } catch (error) {
       toast.error("Failed to post response");
     }
