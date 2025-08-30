@@ -10,6 +10,8 @@ import router from "./routes/forum.js";
 import rewardRouter from "./config/rewards.js";
 import http from "http";
 import { Server } from "socket.io";
+import verifyGoogle from "./auth/verify-google.js";
+import signin from "./auth/signin.js";
 
 const app = express();
 env.config();
@@ -46,12 +48,13 @@ app.get("/", (req, res) => {
 });
 
 app.use("/signup", signup);
-
 app.use("/login", cors(corsOptions), login);
 app.use("/profile", profile);
 app.use("/threads", threads);
 app.use("/", router);
 app.use("/rewards", rewardRouter);
+app.use("/verify-google", verifyGoogle);
+app.use("/signin" , signin)
 
 const server = http.createServer(app);
 

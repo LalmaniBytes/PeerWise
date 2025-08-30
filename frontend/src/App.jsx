@@ -13,6 +13,18 @@ import { toast } from "sonner";
 import { Toaster } from "./components/ui/sonner";
 import { ThumbsUp, ThumbsDown, Plus, User, Trophy, Sparkles, Zap, Play, Crown, Medal, Star, Gem, Award } from "lucide-react";
 import { io } from "socket.io-client";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+import { GoogleLogin } from "@react-oauth/google";
+import jwt_decode from "jwt-decode";
+
+
+function AppWrapper() {
+  return (
+    <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
+      <App />
+    </GoogleOAuthProvider>
+  );
+}
 
 // const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API_URL = process.env.REACT_APP_API_URL;
@@ -53,6 +65,9 @@ const AuthContext = React.createContext();
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem("token"));
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [needsGoogleVerify, setNeedsGoogleVerify] = useState(false);
+
 
   useEffect(() => {
     if (token) {
@@ -67,6 +82,12 @@ const AuthProvider = ({ children }) => {
         withCredentials: true,
       });
       setUser(response.data);
+      if (!response.data.isVerified) {
+        setPendingEmail(response.data.email);
+        setNeedsGoogleVerify(true);
+      } else {
+        setNeedsGoogleVerify(false);
+      }
     } catch (error) {
       console.error("Failed to fetch profile:", error);
       logout();
@@ -75,6 +96,7 @@ const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+
       const response = await axios.post(
         `${API_URL}/login`,
         { email, password },
@@ -85,6 +107,11 @@ const AuthProvider = ({ children }) => {
       );
       console.log("API_URL 👉", process.env.REACT_APP_API_URL);
       const { token: authToken, user: userData } = response.data;
+      if (!userData.isVerified) {
+        setPendingEmail(email);      // store email for Google verification
+        setNeedsGoogleVerify(true);
+        return false; // prevent full login
+      }
       setToken(authToken);
       setUser(userData);
       localStorage.setItem("token", authToken);
@@ -101,18 +128,20 @@ const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (userData) => {
+  const register = async (username, email, password) => {
+    console.log("SIgnup frontend")
     try {
-      const response = await axios.post(`${API_URL}/signup`, userData, {
-        withCredentials: true,
-        headers: { "Content-Type": "application/json" },
-      });
-
-      const { token: authToken, user: newUser } = response.data;
-      setToken(authToken);
+      const response = await axios.post(`${API_URL}/signup`,
+        { username, email, password },
+        {
+          withCredentials: true,
+          headers: { "Content-Type": "application/json" },
+        });
+      console.log("Response grabbed")
+      const newUser = response.data.user;
+      setPendingEmail(newUser.email);  // store email for Google verification
+      setNeedsGoogleVerify(true);      // show verification UI
       setUser(newUser);
-      localStorage.setItem("token", authToken);
-      axios.defaults.headers.common["Authorization"] = `Bearer ${authToken}`;
       toast.success("Welcome to PeerWise! 🎉");
       return true;
     } catch (error) {
@@ -128,6 +157,8 @@ const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     setToken(null);
+    setPendingEmail("");
+    setNeedsGoogleVerify(false);
     localStorage.removeItem("token");
     delete axios.defaults.headers.common["Authorization"];
     toast.info("Logged out successfully");
@@ -135,7 +166,11 @@ const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, login, register, logout, fetchProfile }}
+      value={{
+        user, setUser, login, register, logout, fetchProfile, needsGoogleVerify,
+        setNeedsGoogleVerify,
+        pendingEmail
+      }}
     >
       {children}
     </AuthContext.Provider>
@@ -153,24 +188,64 @@ const useAuth = () => {
 
 // Auth Component
 const Auth = () => {
+
+
+  // const [needsGoogleVerify, setNeedsGoogleVerify] = useState(false);
+
+  const { login, register, needsGoogleVerify, setNeedsGoogleVerify, pendingEmail, setUser } = useAuth();
+
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     username: ''
   });
-  const { login, register } = useAuth();
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      const token = credentialResponse.credential;
+      const response = await axios.post(`${API_URL}/verify-google`, { token, email: pendingEmail });
+      const { token: authToken, user: verifiedUser } = response.data;
+
+      localStorage.setItem("token", authToken);
+      axios.defaults.headers.common["Authorization"] = `Bearer ${authToken}`;
+      setUser(verifiedUser); // ✅ only now set user
+      setNeedsGoogleVerify(false);
+      toast.success("Google verification successful!");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Google login failed");
+    }
+  };
+
+
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const success = isLogin
-      ? await login(formData.email, formData.password)
-      : await register(formData);
-
-    if (success) {
-      setFormData({ email: '', password: '', username: '' });
+    if (isLogin) {
+      await login(formData.email, formData.password);
+    } else {
+      await register(formData.username , formData.email , formData.password);
     }
   };
+
+  if (needsGoogleVerify) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="p-8 bg-black/80 text-center border-cyan-500/30 rounded-lg">
+          <h2 className="text-xl font-bold mb-4">Verify Your Gmail</h2>
+          <p className="mb-6">
+            Verifying Gmail for <span className="font-semibold">{pendingEmail}</span>
+          </p>
+
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => toast.error("Google login failed")}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center relative overflow-hidden">
@@ -213,20 +288,22 @@ const Auth = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
-              <div>
-                <Input
-                  type="text"
-                  placeholder="Username"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="bg-black/50 border-cyan-500/30 text-white placeholder:text-gray-500 focus:border-cyan-400"
-                  required
-                />
-              </div>
+              <Input
+                name="username"
+                type="text"
+                placeholder="Username"
+                value={formData.username}
+                onChange={(e) =>
+                  setFormData({ ...formData, username: e.target.value })
+                }
+                className="bg-black/50 border-cyan-500/30 text-white placeholder:text-gray-500 focus:border-cyan-400"
+                required
+              />
             )}
 
             <div>
               <Input
+                name="email"
                 type="email"
                 placeholder="Email"
                 value={formData.email}
@@ -238,6 +315,7 @@ const Auth = () => {
 
             <div>
               <Input
+                name="password"
                 type="password"
                 placeholder="Password"
                 value={formData.password}
@@ -423,9 +501,11 @@ const Dashboard = () => {
 
 
   useEffect(() => {
-    fetchThreads();
-    fetchRewards();
-  }, []);
+    if (user) {
+      fetchThreads();
+      fetchRewards();
+    }
+  }, [user]);
 
   const fetchThreads = async () => {
     try {
@@ -747,8 +827,7 @@ const Dashboard = () => {
                   </CardHeader>
                   <CardContent>
                     <p className="text-gray-300 line-clamp-2">{thread.description}</p>
-                  </
-                  CardContent>
+                  </CardContent>
                 </Card>
               ))}
             </div>
@@ -800,8 +879,10 @@ const Dashboard = () => {
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
-  const { user } = useAuth();
-  return user ? children : <Auth />;
+  const { user, needsGoogleVerify } = useAuth();
+  if (!user) return <Auth />;
+  if (needsGoogleVerify) return <Auth />; // enforce verification
+  return children;
 };
 
 function App() {

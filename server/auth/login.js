@@ -25,7 +25,11 @@ login.post("/", async (req, res) => {
     if (!isMatch) {
       return res.status(403).json({ message: "Incorrect password!" });
     }
-
+    if (!user.isVerified) {
+      return res
+        .status(403)
+        .json({ message: "Please verify your Gmail first." });
+    }
     const token = jwt.sign(
       { id: user._id, email: user.email },
       process.env.JWT_SECRET || "your_default_secret",

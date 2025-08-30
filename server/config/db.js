@@ -60,6 +60,9 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true },
   credits: { type: Number, default: 0 },
   rank: { type: String, default: "Bronze" },
+  isVerified: { type: Boolean, default: false }, // whether Gmail has been confirmed via OAuth
+  verifiedAt: { type: Date }, // when Gmail was verified
+  googleId: { type: String },
 });
 const userModel = mongoose.model("User", userSchema);
 
@@ -72,5 +75,18 @@ const rewardSchema = new mongoose.Schema({
 });
 const Reward = mongoose.model("Reward", rewardSchema);
 
-export { Thread, Response, Reward };
+const pendingUserSchema = new mongoose.Schema(
+  {
+    username: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true }, // store hashed later
+    createdAt: { type: Date, default: Date.now, expires: "10m" },
+    // 🔹 auto-delete after 10 minutes
+  },
+  { timestamps: true }
+);
+
+const PendingUser = mongoose.model("PendingUser", pendingUserSchema);
+
+export { Thread, Response, Reward , PendingUser };
 export default userModel;
