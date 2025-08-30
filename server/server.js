@@ -15,7 +15,7 @@ const app = express();
 env.config();
 
 const corsOptions = {
-  origin: ["http://localhost:3000", "https://peerwise-1.onrender.com"],
+  origin: ["http://localhost:3000", "https://peerwise-1.onrender.com/"],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
