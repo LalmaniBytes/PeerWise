@@ -22,6 +22,7 @@ const API_URL = process.env.REACT_APP_API_URL;
 //   path: "/socket.io", // must match backend
 // });
 const useSocket = (threadId) => {
+  // ✅ Create global socket connection once
   const socket = useMemo(() => {
     if (!process.env.REACT_APP_SOCKET_URL) return null;
 
@@ -32,18 +33,20 @@ const useSocket = (threadId) => {
     });
   }, []);
 
+  // ✅ Join/leave specific thread room
   useEffect(() => {
     if (!socket || !threadId) return;
 
     socket.emit("join-thread", threadId);
 
     return () => {
-      socket.emit("leave-thread", threadId); // if backend handles it
+      socket.emit("leave-thread", threadId); // optional, backend can ignore if not implemented
     };
   }, [socket, threadId]);
 
   return socket;
 };
+
 // Auth Context
 const AuthContext = React.createContext();
 
@@ -400,10 +403,14 @@ const Dashboard = () => {
         prev.map((r) => (r._id === voteData._id ? { ...r, ...voteData } : r))
       );
     });
+    socket.on("new-thread", (thread) => {
+      setThreads((prev) => [thread, ...prev]); // prepend new thread to list
+    });
 
     return () => {
       socket.off("new-response");
       socket.off("update-votes");
+      socket.off("new-thread");
     };
   }, [socket]);
 

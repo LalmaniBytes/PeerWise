@@ -66,6 +66,14 @@ threadRouter.post("/", authenticateToken, async (req, res) => {
       author: req.user.id, // ✅ using req.user.id instead of _id mismatch
     });
     await newThread.populate("author", "username");
+    io.emit("new-thread", {
+      _id: newThread._id,
+      title: newThread.title,
+      description: newThread.description,
+      author_username: newThread.author.username,
+      response_count: 0,
+      created_at: newThread.created_at,
+    });
 
     res.status(201).json({
       _id: newThread._id, // ✅ explicitly return id
