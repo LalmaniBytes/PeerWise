@@ -26,21 +26,23 @@ const AuthContext = React.createContext();
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(localStorage.getItem("token"));
 
   useEffect(() => {
     if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
       fetchProfile();
     }
   }, [token]);
 
   const fetchProfile = async () => {
     try {
-      const response = await axios.get(`${API_URL}/profile`);
+      const response = await axios.get(`${API_URL}/profile`, {
+        withCredentials: true,
+      });
       setUser(response.data);
     } catch (error) {
-      console.error('Failed to fetch profile:', error);
+      console.error("Failed to fetch profile:", error);
       logout();
     }
   };
@@ -52,48 +54,47 @@ const AuthProvider = ({ children }) => {
         { email, password },
         {
           withCredentials: true,
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
         }
       );
 
-      const { token, user: userData } = response.data;
-      setToken(token);
+      const { token: authToken, user: userData } = response.data;
+      setToken(authToken);
       setUser(userData);
-      localStorage.setItem("token", token);
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      localStorage.setItem("token", authToken);
+      axios.defaults.headers.common["Authorization"] = `Bearer ${authToken}`;
       toast.success("Welcome back to PeerWise! 🎉");
       return true;
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Login failed");
+      toast.error(
+        error.response?.data?.message ||
+        error.message ||
+        "Login failed"
+      );
       return false;
     }
   };
 
-
   const register = async (userData) => {
     try {
-      const response = await axios.post(
-        `${API_URL}/signup`,
-        userData,
-        {
-          withCredentials: true,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await axios.post(`${API_URL}/signup`, userData, {
+        withCredentials: true,
+        headers: { "Content-Type": "application/json" },
+      });
 
-      const { token, user: newUser } = response.data;
-      setToken(token);
+      const { token: authToken, user: newUser } = response.data;
+      setToken(authToken);
       setUser(newUser);
-      localStorage.setItem("token", token);
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      localStorage.setItem("token", authToken);
+      axios.defaults.headers.common["Authorization"] = `Bearer ${authToken}`;
       toast.success("Welcome to PeerWise! 🎉");
       return true;
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Registration failed");
+      toast.error(
+        error.response?.data?.message ||
+        error.message ||
+        "Registration failed"
+      );
       return false;
     }
   };
@@ -101,17 +102,20 @@ const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     setToken(null);
-    localStorage.removeItem('token');
-    delete axios.defaults.headers.common['Authorization'];
+    localStorage.removeItem("token");
+    delete axios.defaults.headers.common["Authorization"];
     toast.info("Logged out successfully");
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, fetchProfile }}>
+    <AuthContext.Provider
+      value={{ user, login, register, logout, fetchProfile }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
+
 
 const useAuth = () => {
   const context = React.useContext(AuthContext);
