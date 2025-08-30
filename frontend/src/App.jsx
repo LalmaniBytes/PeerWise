@@ -16,8 +16,11 @@ import { io } from "socket.io-client";
 
 // const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API_URL = process.env.REACT_APP_API_URL;
-const socket = io(API_URL); // API_URL = backend server
-
+const socket = io(API_URL, {
+  withCredentials: true,
+  transports: ["websocket", "polling"], // allow fallback
+  path: "/socket.io", // must match backend
+});
 // Auth Context
 const AuthContext = React.createContext();
 
