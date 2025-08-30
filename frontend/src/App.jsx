@@ -57,7 +57,7 @@ const AuthProvider = ({ children }) => {
           headers: { "Content-Type": "application/json" },
         }
       );
-
+      console.log("API_URL 👉", process.env.REACT_APP_API_URL);
       const { token: authToken, user: userData } = response.data;
       setToken(authToken);
       setUser(userData);
