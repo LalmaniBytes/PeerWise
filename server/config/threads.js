@@ -135,6 +135,8 @@ threadRouter.post("/:id/responses", authenticateToken, async (req, res) => {
       author: req.user.id,
       thread: req.params.id,
     });
+    await newResponse.populate("author", "username");
+
     io.to(req.params.id).emit("new-response", {
       _id: newResponse._id,
       content: newResponse.content,
@@ -145,7 +147,6 @@ threadRouter.post("/:id/responses", authenticateToken, async (req, res) => {
       voters: newResponse.voters,
       thread: req.params.id,
     });
-    await newResponse.populate("author", "username");
     res.status(201).json({
       ...newResponse.toObject(),
       author_username: newResponse.author.username,

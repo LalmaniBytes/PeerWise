@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import "./App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import axios from "axios";
@@ -16,11 +16,34 @@ import { io } from "socket.io-client";
 
 // const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API_URL = process.env.REACT_APP_API_URL;
-const socket = io(API_URL, {
-  withCredentials: true,
-  transports: ["websocket", "polling"], // allow fallback
-  path: "/socket.io", // must match backend
-});
+// const socket = io(API_URL, {
+//   withCredentials: true,
+//   transports: ["websocket", "polling"], // allow fallback
+//   path: "/socket.io", // must match backend
+// });
+const useSocket = (threadId) => {
+  const socket = useMemo(() => {
+    if (!process.env.REACT_APP_SOCKET_URL) return null;
+
+    return io(process.env.REACT_APP_SOCKET_URL, {
+      transports: ["websocket"],
+      withCredentials: true,
+      path: "/socket.io",
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!socket || !threadId) return;
+
+    socket.emit("join-thread", threadId);
+
+    return () => {
+      socket.emit("leave-thread", threadId); // if backend handles it
+    };
+  }, [socket, threadId]);
+
+  return socket;
+};
 // Auth Context
 const AuthContext = React.createContext();
 
@@ -362,20 +385,16 @@ const Dashboard = () => {
   const [newResponse, setNewResponse] = useState('');
   const [rewards, setRewards] = useState([]);
   const { user, fetchProfile } = useAuth();
-  useEffect(() => {
-    // Join rooms dynamically for selected thread
-    if (selectedThread) {
-      socket.emit("join-thread", selectedThread._id);
-    }
+  const socket = useSocket(selectedThread?._id);
 
-    // Listen for new responses
+  useEffect(() => {
+    if (!socket) return;
+
     socket.on("new-response", (response) => {
-      if (selectedThread && response.thread === selectedThread._id) {
-        setResponses((prev) => [response, ...prev]);
-      }
+      // no need to check response.thread if room is joined
+      setResponses((prev) => [response, ...prev]);
     });
 
-    // Listen for vote updates
     socket.on("update-votes", (voteData) => {
       setResponses((prev) =>
         prev.map((r) => (r._id === voteData._id ? { ...r, ...voteData } : r))
@@ -383,13 +402,11 @@ const Dashboard = () => {
     });
 
     return () => {
-      if (selectedThread) {
-        socket.emit("leave-thread", selectedThread._id);
-      }
       socket.off("new-response");
       socket.off("update-votes");
     };
-  }, [selectedThread]);
+  }, [socket]);
+
 
   useEffect(() => {
     fetchThreads();
