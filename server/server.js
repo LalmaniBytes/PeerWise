@@ -12,6 +12,7 @@ import http from "http";
 import { Server } from "socket.io";
 import verifyGoogle from "./auth/verify-google.js";
 import signin from "./auth/signin.js";
+import cancelPending from "./auth/cancelPending.js";
 
 const app = express();
 env.config();
@@ -55,6 +56,7 @@ app.use("/", router);
 app.use("/rewards", rewardRouter);
 app.use("/verify-google", verifyGoogle);
 app.use("/signin" , signin)
+app.use("/cancel-pending", cancelPending)
 
 const server = http.createServer(app);
 

@@ -192,7 +192,7 @@ const Auth = () => {
 
   // const [needsGoogleVerify, setNeedsGoogleVerify] = useState(false);
 
-  const { login, register, needsGoogleVerify, setNeedsGoogleVerify, pendingEmail, setUser } = useAuth();
+  const { login, register, needsGoogleVerify, setNeedsGoogleVerify, pendingEmail, setUser, logout } = useAuth();
 
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
@@ -225,7 +225,7 @@ const Auth = () => {
     if (isLogin) {
       await login(formData.email, formData.password);
     } else {
-      await register(formData.username , formData.email , formData.password);
+      await register(formData.username, formData.email, formData.password);
     }
   };
 
@@ -242,6 +242,24 @@ const Auth = () => {
             onSuccess={handleGoogleSuccess}
             onError={() => toast.error("Google login failed")}
           />
+          <Button
+            onClick={async() => {
+              try {
+                await axios.delete(`${API_URL}/cancel-pending/${pendingEmail}`);
+                toast.info("Registration canceled.");
+              } catch (err) {
+                console.error(err);
+                toast.error("Failed to cancel registration.");
+              }
+              logout(); // clear logged in user + pending state
+              setFormData({ email: "", password: "", username: "" });
+
+            }}
+            variant="outline"
+            className="w-full border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 mt-4"
+          >
+            ← Back
+          </Button>
         </div>
       </div>
     );
