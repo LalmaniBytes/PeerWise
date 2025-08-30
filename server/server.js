@@ -61,6 +61,7 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
     credentials: true,
   },
+  path: "/socket.io", // 👈 force it to mount here
 });
 
 // Handle WebSocket connections
