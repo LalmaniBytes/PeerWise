@@ -243,7 +243,7 @@ const Auth = () => {
             onError={() => toast.error("Google login failed")}
           />
           <Button
-            onClick={async() => {
+            onClick={async () => {
               try {
                 await axios.delete(`${API_URL}/cancel-pending/${pendingEmail}`);
                 toast.info("Registration canceled.");
@@ -623,6 +623,24 @@ const Dashboard = () => {
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : null;
   };
+  function formatThreadTime(createdAt) {
+    const now = new Date();
+    const created = new Date(createdAt);
+    const diffMs = now - created;
+
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMinutes < 60) {
+      return `${diffMinutes} min ago`;
+    } else if (diffHours < 24) {
+      return `${diffHours} hrs ago`;
+    } else {
+      return created.toLocaleDateString(); // or customize the format
+    }
+  }
+
 
   if (selectedThread) {
     return (
@@ -699,7 +717,7 @@ const Dashboard = () => {
                       <div>
                         <p className="text-white font-medium">{response.author_username}</p>
                         <p className="text-gray-400 text-sm">
-                          {new Date(response.createdAt).toLocaleDateString()}
+                          {formatThreadTime(thread.createdAt)}
                         </p>
                       </div>
                     </div>
@@ -840,7 +858,7 @@ const Dashboard = () => {
                     </div>
                     <div className="flex items-center space-x-4 text-sm text-gray-400">
                       <span>by {thread.author_username}</span>
-                      <span>{new Date(thread.createdAt).toLocaleDateString()}</span>
+                      <span>{formatThreadTime(thread.createdAt)}</span>
                     </div>
                   </CardHeader>
                   <CardContent>
