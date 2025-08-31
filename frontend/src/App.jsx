@@ -82,7 +82,7 @@ const AuthProvider = ({ children }) => {
         withCredentials: true,
       });
       setUser(response.data);
-      if (!response.data.isVerified) {
+      if (!response.data.isVerified && response.data.justSignedUp) {
         setPendingEmail(response.data.email);
         setNeedsGoogleVerify(true);
       } else {
@@ -142,7 +142,7 @@ const AuthProvider = ({ children }) => {
       return true;
     } catch (error) {
       toast.error(
-        error.response?.data?.message ||
+        error.response?.data?.detail||
         error.message ||
         "Registration failed"
       );
