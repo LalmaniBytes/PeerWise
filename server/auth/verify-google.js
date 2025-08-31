@@ -50,10 +50,11 @@ verifyGoogle.post("/", async (req, res) => {
       }
 
       // Password already hashed at signup, so don’t hash again
+      const hashedPass =await bcrypt(pending.password , 10) 
       user = await userModel.create({
         username: pending.username,
         email,
-        password: pending.password,
+        password: hashedPass,
         isVerified: true,
         verifiedAt: new Date(),
         googleId,
