@@ -23,8 +23,8 @@ profile.get("/", authenticateToken, async (req, res) => {
 
     responses.forEach((response) => {
       if (response.author._id.equals(user._id)) {
-        likes = response.thumbs_up;
-        dislikes = response.thumbs_down;
+        likes += response.thumbs_up;
+        dislikes += response.thumbs_down;
       }
     });
     // console.log("Likes : ", likes);
