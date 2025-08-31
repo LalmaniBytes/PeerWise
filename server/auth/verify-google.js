@@ -2,7 +2,7 @@ import express from "express";
 import { OAuth2Client } from "google-auth-library";
 import userModel from "../config/db.js";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs"; // for password hashing
+import * as bcrypt from "bcryptjs";
 import { PendingUser } from "../config/db.js"; // ✅ import your model
 
 const verifyGoogle = express.Router();
@@ -50,7 +50,7 @@ verifyGoogle.post("/", async (req, res) => {
       }
 
       // Password already hashed at signup, so don’t hash again
-      const hashedPass =await bcrypt(pending.password , 10) 
+      const hashedPass =await bcrypt.hash(pending.password , 10) 
       user = await userModel.create({
         username: pending.username,
         email,
