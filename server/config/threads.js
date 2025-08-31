@@ -22,8 +22,8 @@ threadRouter.get("/", async (req, res) => {
           _id: t._id, // ✅ include _id explicitly
           title: t.title,
           description: t.description,
-          created_at: t.created_at,
-          author_username: t.author.username,
+          createdAt: t.createdAt,
+          author_username:  t.author ? t.author.username : "Unknown",
           response_count: responseCount,
         };
       })
@@ -199,7 +199,7 @@ threadRouter.post(
         (v) => v.user?.toString() === userId
       );
       console.log("Exsting user index : ", existingVoteIndex);
-      const selfVoter = (await userId) === response.author.toString();
+      const selfVoter = (userId) === response.author.toString();
       if (selfVoter) {
         return res
           .status(403)
