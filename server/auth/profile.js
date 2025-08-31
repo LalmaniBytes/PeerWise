@@ -40,6 +40,11 @@ profile.get("/", authenticateToken, async (req, res) => {
     // console.log("Rank : " , rank)
     await user.save();
 
+    // io.to(user._id.toString()).emit("credits-updated", {
+    //   credits: user.credits,
+    //   rank: user.rank,
+    // });
+
     res.json(user);
   } catch (err) {
     console.error("Profile fetch error:", err);

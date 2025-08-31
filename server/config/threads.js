@@ -23,7 +23,7 @@ threadRouter.get("/", async (req, res) => {
           title: t.title,
           description: t.description,
           createdAt: t.createdAt,
-          author_username:  t.author ? t.author.username : "Unknown",
+          author_username: t.author ? t.author.username : "Unknown",
           response_count: responseCount,
         };
       })
@@ -199,7 +199,7 @@ threadRouter.post(
         (v) => v.user?.toString() === userId
       );
       console.log("Exsting user index : ", existingVoteIndex);
-      const selfVoter = (userId) === response.author.toString();
+      const selfVoter = userId === response.author.toString();
       if (selfVoter) {
         return res
           .status(403)
@@ -234,8 +234,13 @@ threadRouter.post(
         console.log("Voters before save:", response.voters);
         response.voters.push({ user: userId, voteType });
       }
+      // console.log("Response : ", response)
 
       await response.save();
+      io.to(response._id.toString()).emit("credits-updated", {
+        credits: response.credits,
+        rank: response.rank,
+      });
       io.to(response.thread.toString()).emit("update-votes", {
         _id: response._id,
         thumbs_up: response.thumbs_up,

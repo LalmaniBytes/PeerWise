@@ -17,6 +17,11 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { GoogleLogin } from "@react-oauth/google";
 import jwt_decode from "jwt-decode";
 
+const socket = io(process.env.REACT_APP_SOCKET_URL, {
+  transports: ["websocket"],
+  withCredentials: true,
+  path: "/socket.io",
+});
 
 function AppWrapper() {
   return (
@@ -68,6 +73,21 @@ const AuthProvider = ({ children }) => {
   const [pendingEmail, setPendingEmail] = useState("");
   const [needsGoogleVerify, setNeedsGoogleVerify] = useState(false);
 
+  useEffect(() => {
+    if (socket && user?._id) {
+      // Register user socket room for credits
+      socket.emit("register-user", user._id);
+
+      // Listen for credits updates
+      socket.on("credits-updated", ({ credits, rank }) => {
+        setUser((prev) => prev ? { ...prev, credits, rank } : prev);
+      });
+
+      return () => {
+        socket.off("credits-updated");
+      };
+    }
+  }, [socket, user?._id]);
 
   useEffect(() => {
     if (token) {
