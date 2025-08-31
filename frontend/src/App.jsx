@@ -97,21 +97,10 @@ const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
 
-      const response = await axios.post(
-        `${API_URL}/login`,
-        { email, password },
-        {
-          withCredentials: true,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-      console.log("API_URL 👉", process.env.REACT_APP_API_URL);
+      const response = await axios.post(`${API_URL}/login`, { email, password });
       const { token: authToken, user: userData } = response.data;
-      if (!userData.isVerified) {
-        setPendingEmail(email);      // store email for Google verification
-        setNeedsGoogleVerify(true);
-        return false; // prevent full login
-      }
+
+      // ✅ if login succeeded, user is already verified
       setToken(authToken);
       setUser(userData);
       localStorage.setItem("token", authToken);
