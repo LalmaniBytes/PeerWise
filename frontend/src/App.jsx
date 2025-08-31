@@ -97,10 +97,17 @@ const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
 
-      const response = await axios.post(`${API_URL}/login`, { email, password });
+      const response = await axios.post(
+        `${API_URL}/login`,
+        { email, password },
+        {
+          withCredentials: true,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      console.log("API_URL 👉", process.env.REACT_APP_API_URL);
       const { token: authToken, user: userData } = response.data;
 
-      // ✅ if login succeeded, user is already verified
       setToken(authToken);
       setUser(userData);
       localStorage.setItem("token", authToken);
