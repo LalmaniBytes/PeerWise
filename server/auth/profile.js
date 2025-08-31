@@ -14,7 +14,7 @@ function calculateRank(credits) {
 
 profile.get("/", authenticateToken, async (req, res) => {
   try {
-    const user = await userModel.findById(req.user.id).select("-password");
+    const user = await userModel.findById(req.user.id).select("password");
     if (!user) return res.status(404).json({ message: "User not found" });
     // console.log("user :", user);
     const responses = await Response.find().populate("author");
