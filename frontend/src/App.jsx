@@ -142,7 +142,7 @@ const AuthProvider = ({ children }) => {
       return true;
     } catch (error) {
       toast.error(
-        error.response?.data?.detail||
+        error.response?.data?.detail ||
         error.message ||
         "Registration failed"
       );
@@ -659,7 +659,7 @@ const Dashboard = () => {
               <CardTitle className="text-2xl text-white">{selectedThread.title}</CardTitle>
               <div className="flex items-center space-x-4 text-sm text-gray-400">
                 <span>by {selectedThread.author_username}</span>
-                <span>{new Date(selectedThread.created_at).toLocaleDateString()}</span>
+                <span>{new Date(selectedThread.createdAt).toLocaleDateString()}</span>
                 <Badge variant="outline" className="border-cyan-500/30 text-cyan-400">
                   {selectedThread.response_count} responses
                 </Badge>
@@ -713,7 +713,7 @@ const Dashboard = () => {
                       <div>
                         <p className="text-white font-medium">{response.author_username}</p>
                         <p className="text-gray-400 text-sm">
-                          {formatThreadTime(thread.createdAt)}
+                          {formatThreadTime(response.createdAt)}
                         </p>
                       </div>
                     </div>
