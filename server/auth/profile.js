@@ -22,7 +22,11 @@ profile.get("/", authenticateToken, async (req, res) => {
     let dislikes = 0;
 
     responses.forEach((response) => {
-      if (response.author._id.equals(user._id)) {
+      if (
+        response.author &&
+        response.author._id &&
+        response.author._id.equals(user._id)
+      ) {
         likes += response.thumbs_up;
         dislikes += response.thumbs_down;
       }
@@ -31,7 +35,7 @@ profile.get("/", authenticateToken, async (req, res) => {
     // console.log("Dislikes ", dislikes);
     const credits = likes * 5 + -2 * dislikes;
     user.credits = credits;
-    const rank = calculateRank(credits)
+    const rank = calculateRank(credits);
     user.rank = rank;
     // console.log("Rank : " , rank)
     await user.save();
