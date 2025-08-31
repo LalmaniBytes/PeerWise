@@ -47,7 +47,7 @@ threadRouter.get("/:id", async (req, res) => {
     const responseCount = await Response.countDocuments({ thread: thread._id });
     res.json({
       ...thread,
-      author_username: thread.author.username,
+      author_username: thread.author?.username,
       response_count: responseCount,
     });
   } catch (err) {
