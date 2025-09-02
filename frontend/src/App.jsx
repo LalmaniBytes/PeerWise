@@ -516,8 +516,13 @@ const Dashboard = () => {
     if (!socket) return;
 
     socket.on("new-response", (response) => {
-      // no need to check response.thread if room is joined
-      setResponses((prev) => [response, ...prev]);
+      setResponses((prev) => {
+        // 🔒 Prevent duplicates
+        if (prev.some(r => r._id === response._id)) return prev;
+
+        return [response, ...prev];
+      });
+
       setThreads((prevThreads) =>
         prevThreads.map((t) =>
           t._id === response.thread
