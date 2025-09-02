@@ -591,7 +591,7 @@ const Dashboard = () => {
     if (!newResponse.trim()) return;
 
     try {
-      await axios.post(`${API_URL}/threads/${selectedThread._id}/responses`, {
+      const response = await axios.post(`${API_URL}/threads/${selectedThread._id}/responses`, {
         content: newResponse
       });
       toast.success("Response posted! 💡");
