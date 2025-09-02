@@ -16,12 +16,14 @@ import { io } from "socket.io-client";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { GoogleLogin } from "@react-oauth/google";
 import jwt_decode from "jwt-decode";
+import { useRef } from "react";
 
 const socket = io(process.env.REACT_APP_SOCKET_URL, {
   transports: ["websocket"],
   withCredentials: true,
   path: "/socket.io",
 });
+
 
 function AppWrapper() {
   return (
@@ -437,6 +439,12 @@ const CreateThreadDialog = ({ onThreadCreated }) => {
       setFormData({ title: '', description: '' });
       setOpen(false);
       onThreadCreated();
+      // ✅ after successful upload, clear inputs
+      setNewResponse("");
+      setFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     } catch (error) {
       toast.error("Failed to create thread");
     }
@@ -497,10 +505,12 @@ const Dashboard = () => {
   const [threads, setThreads] = useState([]);
   const [selectedThread, setSelectedThread] = useState(null);
   const [responses, setResponses] = useState([]);
+  const [file, setFile] = useState(null);
   const [newResponse, setNewResponse] = useState('');
   const [rewards, setRewards] = useState([]);
   const { user, fetchProfile } = useAuth();
   const socket = useSocket(selectedThread?._id);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!socket) return;
@@ -585,7 +595,17 @@ const Dashboard = () => {
         content: newResponse
       });
       toast.success("Response posted! 💡");
-      setNewResponse('');
+
+      // ✅ Clear states
+      setNewResponse("");
+      setFile(null);
+
+      // ✅ Clear actual file input DOM field
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      setResponses((prev) => [response.data, ...prev]);
       setSelectedThread((prev) =>
         prev ? { ...prev, response_count: prev.response_count + 1 } : prev
       );
@@ -699,15 +719,51 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleResponseSubmit} className="space-y-4">
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!newResponse.trim() && !file) return;
+
+                  const formData = new FormData();
+                  formData.append("content", newResponse);
+                  if (file) formData.append("file", file);
+
+                  try {
+                    const response = await axios.post(
+                      `${API_URL}/threads/${selectedThread._id}/responses`,
+                      formData,
+                      { withCredentials: true }
+                    );
+                    toast.success("Response posted! 💡");
+                    setNewResponse("");
+                    setFile(null);
+                    setResponses((prev) => [response.data, ...prev]);
+                    setSelectedThread((prev) =>
+                      prev ? { ...prev, response_count: prev.response_count + 1 } : prev
+                    );
+                  } catch (error) {
+                    toast.error("Failed to post response");
+                  }
+                }}
+                className="space-y-4"
+              >
                 <Textarea
                   name="content"
-                  placeholder="Share your solution! YouTube links are especially appreciated... 🎥"
+                  placeholder="Share your solution! (YouTube link or upload a file)"
                   value={newResponse}
                   onChange={(e) => setNewResponse(e.target.value)}
                   className="bg-black/50 border-cyan-500/30 text-white placeholder:text-gray-500 min-h-[100px]"
-                  required
                 />
+
+                {/* File Upload Input */}
+                <Input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={(e) => setFile(e.target.files[0])}
+                  className="bg-black/50 border-cyan-500/30 text-white"
+                />
+
+
                 <Button
                   type="submit"
                   className="bg-gradient-to-r from-cyan-500 to-green-500 hover:from-cyan-400 hover:to-green-400 text-black font-semibold"
@@ -718,103 +774,137 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
+
           {/* Responses */}
           <div className="space-y-4">
-            {responses.map((response) => (
-              <Card key={response._id} className="bg-black/50 border-cyan-500/20 backdrop-blur-xl">
-                <CardContent className="pt-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-green-400 rounded-full flex items-center justify-center">
-                        <span className="text-black font-semibold text-sm">
-                          {response.author_username.charAt(0).toUpperCase()}
-                        </span>
+            {responses.map((response) => {
+              const youtubeId = isYouTubeUrl(response.content) ? extractYouTubeId(response.content) : null
+              return (
+                <Card key={response._id} className="bg-black/50 border-cyan-500/20 backdrop-blur-xl">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-green-400 rounded-full flex items-center justify-center">
+                          <span className="text-black font-semibold text-sm">
+                            {response.author_username.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-white font-medium">{response.author_username}</p>
+                          <p className="text-gray-400 text-sm">
+                            {formatThreadTime(response.createdAt)}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-white font-medium">{response.author_username}</p>
-                        <p className="text-gray-400 text-sm">
-                          {formatThreadTime(response.createdAt)}
-                        </p>
-                      </div>
+
+
                     </div>
 
-                    {response.is_youtube_link && (
-                      <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
-                        <Play className="w-3 h-3 mr-1" />
-                        YouTube
-                      </Badge>
-                    )}
-                  </div>
+                    <div className="mb-4">
+                      <p className="text-gray-300 mb-3">{response.content}</p>
+                      {response.file_url && (
+                        <div className="mt-3">
+                          {(() => {
+                            // Normalize file_url
+                            const fileUrl = response.file_url.startsWith("http")
+                              ? response.file_url
+                              : `${API_URL}${response.file_url}`;
 
-                  <div className="mb-4">
-                    <p className="text-gray-300 mb-3">{response.content}</p>
+                            // Extract file name for download link
+                            const fileName = response.file_url.split("/").pop();
 
-                    {response.youtube_url && (
-                      <div className="bg-black/30 rounded-lg p-4 border border-red-500/20">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Play className="w-4 h-4 text-red-400" />
-                          <span className="text-red-400 font-medium">Video Solution</span>
+                            // Check if it looks like an image
+                            const isImage = /\.(jpe?g|png|gif|webp)$/i.test(fileUrl);
+
+                            return isImage ? (
+                              <img
+                                src={fileUrl}
+                                alt={fileName || "uploaded file"}
+                                className="max-w-full rounded"
+                              />
+                            ) : (
+                              <a
+                                href={fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-cyan-400 hover:text-cyan-300 underline break-all"
+                              >
+                                📎 {fileName}
+                              </a>
+                            );
+                          })()}
                         </div>
-                        <a
-                          href={response.youtube_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-cyan-400 hover:text-cyan-300 underline break-all"
-                        >
-                          {response.youtube_url}
-                        </a>
-                      </div>
-                    )}
-                  </div>
+                      )}
 
-                  <div className="flex items-center space-x-4">
-                    <Button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
 
-                        // Check if user already upvoted
-                        const hasUpvoted = response.voters?.some(
-                          v => v.user?.toString() === user._id && v.voteType === 'up'
-                        );
 
-                        // If already upvoted, send "undo", else "up"
-                        handleVote(response._id, 'up');
-                      }}
-                      size="sm"
-                      variant="outline"
-                      className={`border-green-500/30 text-green-400 hover:bg-green-500/10 transition-all duration-200 ${response.voters?.some(v => v.user === user._id && v.voteType === 'up') ? 'bg-green-500/20' : ''
-                        }`}
-                    >
-                      <ThumbsUp className="w-4 h-4 mr-1" />
-                      {response.thumbs_up}
-                    </Button>
+                      {
+                        youtubeId && (
+                          <div className="bg-black/30 rounded-lg p-4 border border-red-500/20">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <Play className="w-4 h-4 text-red-400" />
+                              <span className="text-red-400 font-medium">Video Solution</span>
+                            </div>
+                            <iframe
+                              src={`https://www.youtube.com/embed/${youtubeId}`}
+                              className="w-full h-64 rounded-lg"
+                              allowFullScreen
+                            />
+                          </div>
+                        )}
 
-                    <Button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
 
-                        // Check if user already downvoted
-                        const hasDownvoted = response.voters?.some(
-                          v => v.user?.toString() === user._id && v.voteType === 'down'
-                        );
+                    </div>
 
-                        // If already downvoted, send "undo", else "down"
-                        handleVote(response._id, 'down');
-                      }}
-                      size="sm"
-                      variant="outline"
-                      className={`border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all duration-200 ${response.voters?.some(v => v.user?.toString() === user._id && v.voteType === 'down') ? 'bg-red-500/20' : ''
-                        }`}
-                    >
-                      <ThumbsDown className="w-4 h-4 mr-1" />
-                      {response.thumbs_down}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <div className="flex items-center space-x-4">
+                      <Button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+
+                          // Check if user already upvoted
+                          const hasUpvoted = response.voters?.some(
+                            v => v.user?.toString() === user._id && v.voteType === 'up'
+                          );
+
+                          // If already upvoted, send "undo", else "up"
+                          handleVote(response._id, 'up');
+                        }}
+                        size="sm"
+                        variant="outline"
+                        className={`border-green-500/30 text-green-400 hover:bg-green-500/10 transition-all duration-200 ${response.voters?.some(v => v.user === user._id && v.voteType === 'up') ? 'bg-green-500/20' : ''
+                          }`}
+                      >
+                        <ThumbsUp className="w-4 h-4 mr-1" />
+                        {response.thumbs_up}
+                      </Button>
+
+                      <Button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+
+                          // Check if user already downvoted
+                          const hasDownvoted = response.voters?.some(
+                            v => v.user?.toString() === user._id && v.voteType === 'down'
+                          );
+
+                          // If already downvoted, send "undo", else "down"
+                          handleVote(response._id, 'down');
+                        }}
+                        size="sm"
+                        variant="outline"
+                        className={`border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all duration-200 ${response.voters?.some(v => v.user?.toString() === user._id && v.voteType === 'down') ? 'bg-red-500/20' : ''
+                          }`}
+                      >
+                        <ThumbsDown className="w-4 h-4 mr-1" />
+                        {response.thumbs_down}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         </div>
       </div>

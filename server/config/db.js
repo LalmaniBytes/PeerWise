@@ -25,6 +25,7 @@ const responseSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    file_url: { type: String },
     thumbs_up: { type: Number, default: 0 },
     thumbs_down: { type: Number, default: 0 },
     youtube_url: { type: String, default: "" },
@@ -88,5 +89,5 @@ const pendingUserSchema = new mongoose.Schema(
 
 const PendingUser = mongoose.model("PendingUser", pendingUserSchema);
 
-export { Thread, Response, Reward , PendingUser };
+export { Thread, Response, Reward, PendingUser };
 export default userModel;

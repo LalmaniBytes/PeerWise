@@ -4,9 +4,23 @@ import { authenticateToken } from "../middleware/jwtAuth.js"; // your auth middl
 import User from "./db.js"; // user model path
 import { Response, Thread } from "./db.js";
 import { io } from "../server.js";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
 const threadRouter = express.Router();
 
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/");
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "_" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + "_" + file.originalname);
+  },
+});
+
+const upload = multer({ storage });
 // GET /threads — get all threads
 threadRouter.get("/", async (req, res) => {
   try {
@@ -126,44 +140,63 @@ threadRouter.get("/:id/responses", async (req, res) => {
 });
 
 // POST /threads/:id/responses
-threadRouter.post("/:id/responses", authenticateToken, async (req, res) => {
-  const { content } = req.body;
-  const { vote_type } = req.body; // Expected: "up" or "down"
-  const userId = req.user.id;
-  const { id } = req.params;
-  const voteType = vote_type;
-  // const voteType = vote_type;
-  // console.log("Vote route hit");
-  // console.log("Params:", req.params);
-  // console.log("Body:", req.body);
-  // console.log("User:", req.user);
-  try {
-    const newResponse = await Response.create({
-      content,
-      author: req.user.id,
-      thread: req.params.id,
-    });
-    await newResponse.populate("author", "username");
+threadRouter.post(
+  "/:id/responses",
+  authenticateToken,
+  upload.single("file"),
+  async (req, res) => {
+    const { content } = req.body;
+    const { vote_type } = req.body; // Expected: "up" or "down"
+    const userId = req.user.id;
+    const { id } = req.params;
+    const voteType = vote_type;
+    // const voteType = vote_type;
+    // console.log("Vote route hit");
+    // console.log("Params:", req.params);
+    // console.log("Body:", req.body);
+    // console.log("User:", req.user);
+    try {
+      const fileUrl = req.file ? `/uploads/${req.file.filename}` : null;
+      const newResponse = await Response.create({
+        content,
+        author: req.user.id,
+        thread: req.params.id,
+        file_url: fileUrl
+      });
+      await newResponse.populate("author", "username");
 
-    io.to(req.params.id).emit("new-response", {
-      _id: newResponse._id,
-      content: newResponse.content,
-      author_username: newResponse.author.username,
-      createdAt: newResponse.createdAt,
-      thumbs_up: newResponse.thumbs_up,
-      thumbs_down: newResponse.thumbs_down,
-      voters: newResponse.voters,
-      thread: req.params.id,
-    });
-    res.status(201).json({
-      ...newResponse.toObject(),
-      author_username: newResponse.author.username,
-      createdAt: newResponse.createdAt,
-    });
-  } catch (err) {
-    res.status(500).json({ detail: "Failed to post response" });
+      io.to(req.params.id).emit("new-response", {
+        _id: newResponse._id,
+        content: newResponse.content,
+        author_username: newResponse.author.username,
+        createdAt: newResponse.createdAt,
+        file_url: newResponse.file_url,
+        thumbs_up: newResponse.thumbs_up,
+        thumbs_down: newResponse.thumbs_down,
+        voters: newResponse.voters,
+        thread: req.params.id,
+      });
+      res.status(201).json({
+        ...newResponse.toObject(),
+        author_username: newResponse.author.username,
+        createdAt: newResponse.createdAt,
+      });
+    } catch (err) {
+      res.status(500).json({ detail: "Failed to post response" });
+    }
   }
-});
+);
+
+  // app.get("/uploads/:filename", (req, res) => {
+  //   const filePath = path.join(process.cwd(), "uploads", req.params.filename);
+
+  //   if (!fs.existsSync(filePath)) {
+  //     return res.status(404).json({ detail: "File not found" });
+  //   }
+
+  //   // Serve file inline (so browser can preview it) or as attachment
+  //   res.sendFile(filePath, { headers: { "Content-Disposition": "inline" } });
+  // });
 
 // POST /responses/:id/vote
 // POST /responses/:id/vote
