@@ -720,31 +720,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (!newResponse.trim() && !file) return;
-
-                  const formData = new FormData();
-                  formData.append("content", newResponse);
-                  if (file) formData.append("file", file);
-
-                  try {
-                    const response = await axios.post(
-                      `${API_URL}/threads/${selectedThread._id}/responses`,
-                      formData,
-                      { withCredentials: true }
-                    );
-                    toast.success("Response posted! 💡");
-                    setNewResponse("");
-                    setFile(null);
-                    setResponses((prev) => [response.data, ...prev]);
-                    setSelectedThread((prev) =>
-                      prev ? { ...prev, response_count: prev.response_count + 1 } : prev
-                    );
-                  } catch (error) {
-                    toast.error("Failed to post response");
-                  }
-                }}
+                onSubmit={handleResponseSubmit}
                 className="space-y-4"
               >
                 <Textarea
