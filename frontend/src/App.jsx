@@ -585,15 +585,22 @@ const Dashboard = () => {
     setSelectedThread(thread);
     fetchResponses(thread._id);
   };
-
   const handleResponseSubmit = async (e) => {
     e.preventDefault();
-    if (!newResponse.trim()) return;
+    if (!newResponse.trim() && !file) return;
 
     try {
-      await axios.post(`${API_URL}/threads/${selectedThread._id}/responses`, {
-        content: newResponse
-      });
+      // ✅ Build FormData (handles text + optional file)
+      const formData = new FormData();
+      formData.append("content", newResponse);
+      if (file) formData.append("file", file);
+
+      const response = await axios.post(
+        `${API_URL}/threads/${selectedThread._id}/responses`,
+        formData,
+        { withCredentials: true }
+      );
+
       toast.success("Response posted! 💡");
 
       // ✅ Clear states
@@ -605,15 +612,19 @@ const Dashboard = () => {
         fileInputRef.current.value = "";
       }
 
-      setResponses((prev) => [response.data, ...prev]);
+      // ❌ Comment this out if you want only socket to update responses
+      // setResponses((prev) => [response.data, ...prev]);
+
+      // Update thread response count
       setSelectedThread((prev) =>
         prev ? { ...prev, response_count: prev.response_count + 1 } : prev
       );
-      // fetchResponses(selectedThread._id);
+
     } catch (error) {
       toast.error("Failed to post response");
     }
   };
+
 
   const handleVote = async (responseId, voteType) => {
     console.log("Your are on the correct path !")
@@ -720,31 +731,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (!newResponse.trim() && !file) return;
-
-                  const formData = new FormData();
-                  formData.append("content", newResponse);
-                  if (file) formData.append("file", file);
-
-                  try {
-                    const response = await axios.post(
-                      `${API_URL}/threads/${selectedThread._id}/responses`,
-                      formData,
-                      { withCredentials: true }
-                    );
-                    toast.success("Response posted! 💡");
-                    setNewResponse("");
-                    setFile(null);
-                    setResponses((prev) => [response.data, ...prev]);
-                    setSelectedThread((prev) =>
-                      prev ? { ...prev, response_count: prev.response_count + 1 } : prev
-                    );
-                  } catch (error) {
-                    toast.error("Failed to post response");
-                  }
-                }}
+                onSubmit={handleResponseSubmit}
                 className="space-y-4"
               >
                 <Textarea
