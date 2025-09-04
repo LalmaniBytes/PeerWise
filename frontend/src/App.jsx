@@ -103,9 +103,10 @@ const AuthProvider = ({ children }) => {
       const response = await axios.get(`${API_URL}/profile`, {
         withCredentials: true,
       });
-      setUser({...response.data , 
-        rank : response.data.rank , 
-        claimedRank : response.data.claimedRank
+      setUser({
+        ...response.data,
+        rank: response.data.rank,
+        claimedRank: response.data.claimedRank
       });
       if (!response.data.isVerified && response.data.justSignedUp) {
         setPendingEmail(response.data.email);
@@ -403,7 +404,7 @@ const Navigation = () => {
             </span>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-centaber space-x-4">
             <div className="flex items-center space-x-2 bg-black/50 px-3 py-1 rounded-full border border-cyan-500/30">
               <Trophy className="w-4 h-4 text-cyan-400" />
               <span className="text-cyan-400 font-semibold" data-testid="user-credits">{user?.credits || 0}</span>
@@ -411,7 +412,15 @@ const Navigation = () => {
 
             <div className="flex items-center space-x-2 text-white">
               <User className="w-4 h-4" />
-              <span>{user?.username}</span>
+              <span>
+                {user?.username}{" "}
+                {user?.claimedRank === "Diamond" && "💎"}
+                {user?.claimedRank === "Platinum" && "💠"}
+                {user?.claimedRank === "Gold" && "🥇"}
+                {user?.claimedRank === "Silver" && "🥈"}
+                {user?.claimedRank === "Bronze" && "🥉"}
+              </span>
+
             </div>
 
             <Button
@@ -558,15 +567,21 @@ const Dashboard = () => {
       fetchRewards();
     }
   }, [user]);
-  const claimedRank = async (rank) =>{
+  const claimRank = async (rank) => {
     try {
-      const res = await axios.post(`{API_URL}/profile/claim` , {rank} , {withCredentials : true})
-      toast.success(`You claimed ${rank}`)
-      fetchProfile()
-    } catch{
-      toast.error(error.response?.data?.message)
+      const res = await axios.post(
+        `${API_URL}/profile/claim`,
+        { rank },
+        { withCredentials: true }
+      );
+
+      toast.success(`You claimed ${rank} 🎉`);
+      fetchProfile(); // refresh user with updated credits + claimedRank
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to claim rank");
     }
-  }
+  };
+
   const fetchThreads = async () => {
     try {
       const response = await axios.get(`${API_URL}/threads`);
@@ -972,44 +987,132 @@ const Dashboard = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="rewards" className="space-y-6">
+          <TabsContent value="rewards" className="space-y-8">
+            {/* Rewards Section */}
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-green-400 bg-clip-text text-transparent mb-2">
-                Rewards Store
-              </h1>
-              <p className="text-gray-400">Spend your hard-earned credits on awesome rewards!</p>
+              <h1 className="text-2xl font-bold text-white mb-4">🎁 Available Rewards</h1>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {rewards.map((reward) => (
+                  <Card
+                    key={reward._id}
+                    className="bg-black/50 border-cyan-500/20 backdrop-blur-xl"
+                  >
+                    <CardHeader>
+                      <CardTitle className="text-lg text-white">{reward.name}</CardTitle>
+                      <CardDescription className="text-gray-400">
+                        Costs {reward.cost} credits
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button
+                        onClick={() => handleRewardRedeem(reward._id)}
+                        disabled={user?.credits < reward.cost}
+                        className="w-full bg-gradient-to-r from-cyan-500 to-green-500 hover:from-cyan-400 hover:to-green-400 text-black font-semibold disabled:opacity-50"
+                      >
+                        {user?.credits < reward.cost ? "Not enough credits" : "Redeem"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {rewards.map((reward) => (
-                <Card key={reward._id} className="bg-black/50 border-cyan-500/20 backdrop-blur-xl">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center justify-between">
-                      {reward.name}
-                      <Badge className="bg-gradient-to-r from-cyan-500 to-green-500 text-black">
-                        {reward.cost} credits
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-300 mb-4">{reward.description}</p>
-                    <Button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleRewardRedeem(reward._id);
-                      }}
-                      disabled={user?.credits < reward.cost}
-                      className="w-full bg-gradient-to-r from-cyan-500 to-green-500 hover:from-cyan-400 hover:to-green-400 text-black font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                      data-testid={`redeem-${reward._id}`}
-                    >
-                      {user?.credits < reward.cost ? 'Not enough credits' : 'Redeem'}
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+            {/* Rank Claim Section */}
+            <div>
+              <h1 className="text-2xl font-bold text-white mb-4">🎖️ Rank Store</h1>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {[
+                  { name: "Bronze", cost: 50, emoji: "🥉" },
+                  { name: "Silver", cost: 200, emoji: "🥈" },
+                  { name: "Gold", cost: 500, emoji: "🥇" },
+                  { name: "Platinum", cost: 800, emoji: "💠" },
+                  { name: "Diamond", cost: 1000, emoji: "💎" },
+                ].map((rank) => (
+                  <Card
+                    key={rank.name}
+                    className="bg-black/50 border-cyan-500/20 backdrop-blur-xl"
+                  >
+                    <CardHeader>
+                      <CardTitle className="text-lg text-white flex items-center gap-2">
+                        {rank.emoji} {rank.name}
+                      </CardTitle>
+                      <CardDescription className="text-gray-400">
+                        Costs {rank.cost} credits
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {user?.claimedRank === rank.name ? (
+                        <Button
+                          disabled
+                          className="w-full bg-green-600/30 text-green-400 cursor-default"
+                        >
+                          ✅ Claimed
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => claimRank(rank.name)}
+                          disabled={user?.credits < rank.cost}
+                          className="w-full bg-gradient-to-r from-cyan-500 to-green-500 hover:from-cyan-400 hover:to-green-400 text-black font-semibold disabled:opacity-50"
+                        >
+                          {user?.credits < rank.cost ? "Not enough credits" : "Claim"}
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
           </TabsContent>
+
+          <TabsContent value="ranks" className="space-y-6">
+            <Card className="bg-gray-900/50 border border-gray-700 rounded-2xl shadow-xl p-6">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-white text-center">
+                  🎖️ Rank Store
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[
+                  { name: "Bronze", cost: 50, emoji: "🥉" },
+                  { name: "Silver", cost: 200, emoji: "🥈" },
+                  { name: "Gold", cost: 500, emoji: "🥇" },
+                  { name: "Platinum", cost: 800, emoji: "💠" },
+                  { name: "Diamond", cost: 1000, emoji: "💎" },
+                ].map((rank) => (
+                  <div
+                    key={rank.name}
+                    className="bg-gray-800/60 p-5 rounded-xl border border-gray-700 text-center flex flex-col justify-between shadow-md"
+                  >
+                    <h3 className="text-lg font-semibold text-white flex items-center justify-center gap-2">
+                      {rank.emoji} {rank.name}
+                    </h3>
+                    <p className="text-gray-400 mt-2">{rank.cost} credits</p>
+
+                    {user?.claimedRank === rank.name ? (
+                      <Button
+                        disabled
+                        className="w-full bg-green-600/30 text-green-400 mt-4 cursor-default"
+                      >
+                        ✅ Claimed
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => claimRank(rank.name)}
+                        disabled={user?.credits < rank.cost}
+                        className="w-full mt-4 bg-gradient-to-r from-cyan-500 to-green-500 hover:from-cyan-400 hover:to-green-400 text-black font-semibold disabled:opacity-50"
+                      >
+                        {user?.credits < rank.cost ? "Not enough credits" : "Claim"}
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+
+
+
         </Tabs>
       </div>
     </div>
