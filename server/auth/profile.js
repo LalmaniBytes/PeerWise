@@ -39,17 +39,39 @@ profile.get("/", authenticateToken, async (req, res) => {
     user.rank = rank;
     // console.log("Rank : " , rank)
     await user.save();
-
-    // io.to(user._id.toString()).emit("credits-updated", {
-    //   credits: user.credits,
-    //   rank: user.rank,
-    // });
-
     res.json(user);
   } catch (err) {
     console.error("Profile fetch error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
+
+profile.post('claim' , authenticateToken ,async (req,res)=>{
+  try{
+    const {rank} = req.body
+    const user = await userModel.findById(req.user.id)
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const costMap = { Bronze : 50 , Silver : 200 , GOld : 500 , Platinum : 800 , Diamond : 1000 }
+    const cost = costMap[rank]
+    
+    if(user.credits < cost){
+      return res.status(400).json({message : "Not enough "})
+    }
+    user.credits -= cost
+    user.claimedRank = rank
+    await user.save() 
+
+    res.json({
+      success : true,
+      claimedRank : user.claimedRank,
+      credits : user.credits
+    })
+  } catch {
+    console.log("Claim error : " , err)
+    res.status(500).json({message : "Server error"})
+  }
+})
 
 export default profile;

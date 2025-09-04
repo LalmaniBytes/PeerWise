@@ -56,6 +56,7 @@ threadRouter.get("/:id", async (req, res) => {
     const thread = await Thread.findById(req.params.id)
       .populate("author", "username")
       .lean();
+    console.log("Threads : ", thread);
     if (!thread) return res.status(404).json({ detail: "Thread not found" });
 
     const responseCount = await Response.countDocuments({ thread: thread._id });
@@ -161,7 +162,7 @@ threadRouter.post(
         content,
         author: req.user.id,
         thread: req.params.id,
-        file_url: fileUrl
+        file_url: fileUrl,
       });
       await newResponse.populate("author", "username");
 
@@ -187,16 +188,16 @@ threadRouter.post(
   }
 );
 
-  // app.get("/uploads/:filename", (req, res) => {
-  //   const filePath = path.join(process.cwd(), "uploads", req.params.filename);
+// app.get("/uploads/:filename", (req, res) => {
+//   const filePath = path.join(process.cwd(), "uploads", req.params.filename);
 
-  //   if (!fs.existsSync(filePath)) {
-  //     return res.status(404).json({ detail: "File not found" });
-  //   }
+//   if (!fs.existsSync(filePath)) {
+//     return res.status(404).json({ detail: "File not found" });
+//   }
 
-  //   // Serve file inline (so browser can preview it) or as attachment
-  //   res.sendFile(filePath, { headers: { "Content-Disposition": "inline" } });
-  // });
+//   // Serve file inline (so browser can preview it) or as attachment
+//   res.sendFile(filePath, { headers: { "Content-Disposition": "inline" } });
+// });
 
 // POST /responses/:id/vote
 // POST /responses/:id/vote

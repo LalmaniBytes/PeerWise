@@ -103,7 +103,10 @@ const AuthProvider = ({ children }) => {
       const response = await axios.get(`${API_URL}/profile`, {
         withCredentials: true,
       });
-      setUser(response.data);
+      setUser({...response.data , 
+        rank : response.data.rank , 
+        claimedRank : response.data.claimedRank
+      });
       if (!response.data.isVerified && response.data.justSignedUp) {
         setPendingEmail(response.data.email);
         setNeedsGoogleVerify(true);
@@ -555,7 +558,15 @@ const Dashboard = () => {
       fetchRewards();
     }
   }, [user]);
-
+  const claimedRank = async (rank) =>{
+    try {
+      const res = await axios.post(`{API_URL}/profile/claim` , {rank} , {withCredentials : true})
+      toast.success(`You claimed ${rank}`)
+      fetchProfile()
+    } catch{
+      toast.error(error.response?.data?.message)
+    }
+  }
   const fetchThreads = async () => {
     try {
       const response = await axios.get(`${API_URL}/threads`);
@@ -569,6 +580,7 @@ const Dashboard = () => {
     console.log("ThreadId : ", threadId)
     try {
       const response = await axios.get(`${API_URL}/threads/${threadId}/responses`);
+      console.log("url :", `${API_URL}/threads/${threadId}`)
       console.log(response.data)
       setResponses(response.data);
     } catch (error) {
@@ -713,13 +725,6 @@ const Dashboard = () => {
           <Card className="bg-black/50 border-cyan-500/20 backdrop-blur-xl mb-8">
             <CardHeader>
               <CardTitle className="text-2xl text-white">{selectedThread.title}</CardTitle>
-              <div className="flex items-center space-x-4 text-sm text-gray-400">
-                <span>by {selectedThread.author_username}</span>
-                <span>{new Date(selectedThread.createdAt).toLocaleDateString()}</span>
-                <Badge variant="outline" className="border-cyan-500/30 text-cyan-400">
-                  {selectedThread.response_count} responses
-                </Badge>
-              </div>
             </CardHeader>
             <CardContent>
               <p className="text-gray-300 leading-relaxed">{selectedThread.description}</p>
@@ -1047,5 +1052,6 @@ function App() {
     </div>
   );
 }
+
 
 export default App;

@@ -60,7 +60,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   email: { type: String, required: true },
   credits: { type: Number, default: 0 },
-  rank: { type: String, default: "Bronze" },
+  rank: { type: String ,default: "None" },
   isVerified: { type: Boolean, default: false }, // whether Gmail has been confirmed via OAuth
   verifiedAt: { type: Date }, // when Gmail was verified
   googleId: { type: String },
