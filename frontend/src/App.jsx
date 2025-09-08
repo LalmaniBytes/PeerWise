@@ -84,9 +84,21 @@ const AuthProvider = ({ children }) => {
       socket.on("credits-updated", ({ credits, rank }) => {
         setUser((prev) => prev ? { ...prev, credits, rank } : prev);
       });
-
+      socket.on("new-notification", ({ message, link }) => {
+        toast.info(message, {
+          action: {
+            label: "View",
+            onClick: () => {
+              // Redirect to the thread
+              // window.location.href is a simple way, or you can use useNavigate from react-router-dom
+              window.location.href = link;
+            },
+          },
+        });
+      });
       return () => {
         socket.off("credits-updated");
+         socket.off("new-notification"); 
       };
     }
   }, [socket, user?._id]);

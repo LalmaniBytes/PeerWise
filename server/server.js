@@ -31,7 +31,7 @@ app.options("*", cors(corsOptions)); // enable preflight for all routes
 
 app.use(
   helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" }, // 👈 allow cross-origin resources
+    crossOriginResourcePolicy: { policy: "cross-origin" },
     contentSecurityPolicy: {
       directives: {
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
@@ -48,16 +48,6 @@ app.use(
 
 app.use(express.json());
 
-// app.use((req, res, next) => {
-//   res.header("Access-Control-Allow-Origin", "https://peerwise-1.onrender.com");
-//   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-//   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-//   res.header("Access-Control-Allow-Credentials", "true");
-//   if (req.method === "OPTIONS") {
-//     return res.sendStatus(200);
-//   }
-//   next();
-// });
 app.get("/test-cors", (req, res) => {
   res.json({ msg: "CORS is working 🎉" });
 });
@@ -65,10 +55,12 @@ app.get("/test-cors", (req, res) => {
 app.get("/", (req, res) => {
   res.send("Listning to the route !");
 });
+
 app.get("/uploads", (req, res) => {
   console.log("efgf");
   res.send("uploads found");
 });
+
 app.get("/uploads/:filename", (req, res) => {
   const decodedFilename = decodeURIComponent(req.params.filename);
   const filePath = path.join(process.cwd(), "uploads", decodedFilename);
@@ -108,12 +100,21 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
     credentials: true,
   },
-  path: "/socket.io", // 👈 force it to mount here
+  path: "/socket.io",
 });
+
+// ✅ New: Store a mapping of user IDs to their socket IDs
+const userSockets = {};
 
 // Handle WebSocket connections
 io.on("connection", (socket) => {
   console.log("🔌 User connected:", socket.id);
+
+  // ✅ NEW: Listen for 'register-user' event from frontend
+  socket.on("register-user", (userId) => {
+    userSockets[userId] = socket.id;
+    console.log(`✅ User ${userId} registered with socket ${socket.id}`);
+  });
 
   // When frontend joins a specific thread room
   socket.on("join-thread", (threadId) => {
@@ -123,11 +124,20 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log("❌ User disconnected:", socket.id);
+
+    // ✅ NEW: Clean up the userSockets map on disconnect
+    for (const userId in userSockets) {
+      if (userSockets[userId] === socket.id) {
+        delete userSockets[userId];
+        console.log(`User ${userId} deregistered on disconnect.`);
+        break;
+      }
+    }
   });
 });
 
-// ✅ Export io so routes can use it
-export { io };
+// ✅ Export io and the new userSockets map
+export { io, userSockets };
 
 // --- Start server ---
 const PORT = process.env.PORT || 5000;

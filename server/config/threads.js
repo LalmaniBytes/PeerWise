@@ -166,6 +166,26 @@ threadRouter.post(
       });
       await newResponse.populate("author", "username");
 
+      // Find the thread to get the author's ID
+      const thread = await Thread.findById(id).lean();
+      if (!thread) {
+        return res.status(404).json({ detail: "Thread not found" });
+      }
+
+      // ✅ New notification logic
+      // Check if the responder is not the thread author
+      const isThreadAuthor = thread.author.toString() === userId.toString();
+      if (!isThreadAuthor) {
+        const threadAuthorSocketId = userSockets[thread.author.toString()];
+        if (threadAuthorSocketId) {
+          console.log("User checked your threads !")
+          io.to(threadAuthorSocketId).emit("new-notification", {
+            message: `Someone responded to your problem: "${thread.title}"`,
+            link: `/`, // You can adjust this link if you have a specific thread page
+          });
+        }
+      }
+
       io.to(req.params.id).emit("new-response", {
         _id: newResponse._id,
         content: newResponse.content,
