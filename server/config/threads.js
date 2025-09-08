@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import { authenticateToken } from "../middleware/jwtAuth.js"; // your auth middleware path
 import User from "./db.js"; // user model path
 import { Response, Thread } from "./db.js";
-import { io } from "../server.js";
+import { io, userSockets } from "../server.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -167,7 +167,7 @@ threadRouter.post(
       await newResponse.populate("author", "username");
 
       // Find the thread to get the author's ID
-      const thread = await Thread.findById(id)
+      const thread = await Thread.findById(id);
       if (!thread) {
         return res.status(404).json({ detail: "Thread not found" });
       }
@@ -178,7 +178,7 @@ threadRouter.post(
       if (!isThreadAuthor) {
         const threadAuthorSocketId = userSockets[thread.author.toString()];
         if (threadAuthorSocketId) {
-          console.log("User checked your threads !")
+          console.log("User checked your threads !");
           io.to(threadAuthorSocketId).emit("new-notification", {
             message: `Someone responded to your problem: "${thread.title}"`,
             link: `/`, // You can adjust this link if you have a specific thread page
