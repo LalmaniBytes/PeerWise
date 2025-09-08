@@ -17,6 +17,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { GoogleLogin } from "@react-oauth/google";
 import jwt_decode from "jwt-decode";
 import { useRef } from "react";
+import { subscribeUserToPush } from "./PushNotification";
 
 const socket = io(process.env.REACT_APP_SOCKET_URL, {
   transports: ["websocket"],
@@ -79,7 +80,7 @@ const AuthProvider = ({ children }) => {
     if (socket && user?._id) {
       // Register user socket room for credits
       socket.emit("register-user", user._id);
-
+      subscribeUserToPush();
       // Listen for credits updates
       socket.on("credits-updated", ({ credits, rank }) => {
         setUser((prev) => prev ? { ...prev, credits, rank } : prev);
@@ -98,7 +99,7 @@ const AuthProvider = ({ children }) => {
       });
       return () => {
         socket.off("credits-updated");
-         socket.off("new-notification"); 
+        socket.off("new-notification");
       };
     }
   }, [socket, user?._id]);

@@ -15,9 +15,21 @@ import signin from "./auth/signin.js";
 import cancelPending from "./auth/cancelPending.js";
 import path from "path";
 import fs from "fs";
+import userModel from "./config/db.js";
+import webpush from "web-push";
 
 const app = express();
 env.config();
+
+const vapidKeys = {
+  publicKey: process.env.VAPID_PUBLIC_KEY,
+  privateKey: process.env.VAPID_PRIVATE_KEY,
+};
+webpush.setVapidDetails(
+  "mailto:your-email@example.com",
+  vapidKeys.publicKey,
+  vapidKeys.privateKey
+);
 
 const corsOptions = {
   origin: ["http://localhost:3000", "https://peerwise-1.onrender.com"],
@@ -91,7 +103,20 @@ app.use("/rewards", rewardRouter);
 app.use("/verify-google", verifyGoogle);
 app.use("/signin", signin);
 app.use("/cancel-pending", cancelPending);
-
+app.post("/subscribe", authenticateToken, async (req, res) => {
+  try {
+    const user = await userModel.findById(req.user.id);
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+    user.pushSubscription = req.body;
+    await user.save();
+    res.status(201).json({ message: "Push subscription saved." });
+  } catch (err) {
+    console.error("Error saving subscription:", err);
+    res.status(500).send("Failed to save subscription.");
+  }
+});
 const server = http.createServer(app);
 
 const io = new Server(server, {
