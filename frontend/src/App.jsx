@@ -464,12 +464,7 @@ const CreateThreadDialog = ({ onThreadCreated }) => {
       setFormData({ title: '', description: '' });
       setOpen(false);
       onThreadCreated();
-      // ✅ after successful upload, clear inputs
-      setNewResponse("");
-      setFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+    
     } catch (error) {
       toast.error("Failed to create thread");
     }

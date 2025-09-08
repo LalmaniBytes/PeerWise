@@ -7,6 +7,7 @@ import { io, userSockets } from "../server.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import userModel from "./db.js";
 
 const threadRouter = express.Router();
 
@@ -147,15 +148,9 @@ threadRouter.post(
   upload.single("file"),
   async (req, res) => {
     const { content } = req.body;
-    const { vote_type } = req.body; // Expected: "up" or "down"
     const userId = req.user.id;
     const { id } = req.params;
-    const voteType = vote_type;
-    // const voteType = vote_type;
-    // console.log("Vote route hit");
-    // console.log("Params:", req.params);
-    // console.log("Body:", req.body);
-    // console.log("User:", req.user);
+
     try {
       const fileUrl = req.file ? `/uploads/${req.file.filename}` : null;
       const newResponse = await Response.create({
@@ -172,20 +167,42 @@ threadRouter.post(
         return res.status(404).json({ detail: "Thread not found" });
       }
 
-      // ✅ New notification logic
       // Check if the responder is not the thread author
       const isThreadAuthor = thread.author.toString() === userId.toString();
       if (!isThreadAuthor) {
-        const threadAuthorSocketId = userSockets[thread.author.toString()];
+        // Find the user to get their socket and push subscription
+        const threadAuthor = await userModel.findById(thread.author);
+
+        // ✅ Socket.io notification for real-time updates (user must be online)
+        const threadAuthorSocketId = userSockets[threadAuthor._id.toString()];
         if (threadAuthorSocketId) {
           console.log("User checked your threads !");
           io.to(threadAuthorSocketId).emit("new-notification", {
             message: `Someone responded to your problem: "${thread.title}"`,
-            link: `/`, // You can adjust this link if you have a specific thread page
+            link: `/`,
           });
+        }
+
+        // ✅ Push notification logic (user can be offline)
+        if (threadAuthor.pushSubscription) {
+          const payload = JSON.stringify({
+            title: "New Response!",
+            body: `Someone responded to your problem: "${thread.title}"`,
+            link: `/threads/${thread.id}`, // Use the correct link if you implement single thread pages
+          });
+          try {
+            await webpush.sendNotification(
+              threadAuthor.pushSubscription,
+              payload
+            );
+            console.log("Push notification sent successfully.");
+          } catch (error) {
+            console.error("Failed to send push notification:", error);
+          }
         }
       }
 
+      // ... (rest of the function)
       io.to(req.params.id).emit("new-response", {
         _id: newResponse._id,
         content: newResponse.content,
@@ -197,12 +214,14 @@ threadRouter.post(
         voters: newResponse.voters,
         thread: req.params.id,
       });
+
       res.status(201).json({
         ...newResponse.toObject(),
         author_username: newResponse.author.username,
         createdAt: newResponse.createdAt,
       });
     } catch (err) {
+      console.error("Response post error:", err);
       res.status(500).json({ detail: "Failed to post response" });
     }
   }
