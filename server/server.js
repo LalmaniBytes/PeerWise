@@ -17,6 +17,7 @@ import path from "path";
 import fs from "fs";
 import userModel from "./config/db.js";
 import webpush from "web-push";
+import { authenticateToken } from "./middleware/jwtAuth.js";
 
 const app = express();
 env.config();
