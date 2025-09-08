@@ -167,7 +167,7 @@ threadRouter.post(
       await newResponse.populate("author", "username");
 
       // Find the thread to get the author's ID
-      const thread = await Thread.findById(id).lean();
+      const thread = await Thread.findById(id)
       if (!thread) {
         return res.status(404).json({ detail: "Thread not found" });
       }
