@@ -35,6 +35,7 @@ const responseSchema = new mongoose.Schema(
         voteType: { type: String, enum: ["up", "down"] },
       },
     ],
+    isBestAnswer: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
@@ -59,8 +60,14 @@ const userSchema = new mongoose.Schema({
   username: { type: String, required: true },
   password: { type: String, required: true },
   email: { type: String, required: true },
+  realName: { type: String },
+  bio: { type: String, default: "" },
+  profilePicture: { type: String, default: "" },
+  questionsAsked: { type: Number, default: 0 },
+  answersGiven: { type: Number, default: 0 },
+  bestAnswerCount: { type: Number, default: 0 },
   credits: { type: Number, default: 0 },
-  rank: { type: String ,default: "None" },
+  rank: { type: String, default: "None" },
   isVerified: { type: Boolean, default: false }, // whether Gmail has been confirmed via OAuth
   verifiedAt: { type: Date }, // when Gmail was verified
   googleId: { type: String },

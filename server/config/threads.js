@@ -23,6 +23,82 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 // GET /threads — get all threads
+// POST /threads/responses/:id/best-answer
+// This route should only be accessible by the original author of the thread
+threadRouter.post(
+  "/responses/:id/best-answer",
+  authenticateToken,
+  async (req, res) => {
+    const userId = req.user.id;
+    const responseId = req.params.id;
+
+    try {
+      // Find the response and populate both the thread and the author
+      const response = await Response.findById(responseId)
+        .populate("thread")
+        .populate("author");
+      if (!response) {
+        return res.status(404).json({ detail: "Response not found" });
+      }
+
+      // Check 1: Ensure the user is the author of the original thread
+      if (response.thread.author.toString() !== userId.toString()) {
+        return res
+          .status(403)
+          .json({ detail: "Only the thread author can mark a best answer." });
+      }
+
+      // Check 2: The author of the thread cannot mark their own response
+      if (response.author._id.toString() === userId.toString()) {
+        return res.status(403).json({
+          detail: "You cannot mark your own response as best answer.",
+        });
+      }
+
+      // Check if the response is already marked as best answer
+      if (response.isBestAnswer) {
+        return res
+          .status(400)
+          .json({ detail: "This response is already the best answer." });
+      }
+
+      // Find the user who wrote the best answer to update their credits
+      const author = await userModel.findById(response.author._id);
+      if (!author) {
+        return res
+          .status(404)
+          .json({ detail: "Author of the response not found." });
+      }
+
+      // ✅ CORE FIX: Mark the response as best answer and save
+      response.isBestAnswer = true;
+      await response.save();
+
+      // ✅ CORE FIX: Give credits to the author of the best answer and save
+      author.credits += 25;
+      await author.save();
+
+      // Emit real-time updates for best answer and profile credits
+      io.to(response.thread._id.toString()).emit("new-best-answer", {
+        responseId: response._id,
+      });
+
+      // Notify the author of the best answer
+      const authorSocketId = userSockets[author._id.toString()];
+      if (authorSocketId) {
+        io.to(authorSocketId).emit("new-notification", {
+          message: `Your response was marked as the best answer! You earned 25 credits! 🎉`,
+          link: `/threads/${response.thread._id}`,
+        });
+      }
+
+      res.status(200).json({ detail: "Best answer awarded successfully." });
+    } catch (err) {
+      console.error("Error awarding best answer:", err);
+      res.status(500).json({ detail: "Server error" });
+    }
+  }
+);
 threadRouter.get("/", async (req, res) => {
   try {
     const threads = await Thread.find()
