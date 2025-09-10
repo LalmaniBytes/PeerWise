@@ -110,16 +110,6 @@ app.post("/subscribe", authenticateToken, async (req, res) => {
     res.status(500).send("Failed to save subscription.");
   }
 });
-// IMPORTANT: Define __dirname and the static/catch-all routes here
-// This must be AFTER all API routes but BEFORE the server creation
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-app.use(express.static(path.join(__dirname, ".." ,  "frontend", "build")));
-
-app.get("/*", (req, res) => {
-  res.sendFile(path.join(__dirname, ".." ,  "frontend", "build", "index.html"));
-});
 
 // Now, create the server and Socket.IO instance
 const server = http.createServer(app);
