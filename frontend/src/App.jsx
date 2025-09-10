@@ -13,7 +13,7 @@ import { ThreadView } from "./components/ThreadView";
 import RewardsPage from "./pages/RewardsPage";
 import ProfilePage from "./pages/ProfilePage";
 import IntroPage from "./pages/IntroPage";
-import { LeaderboardsPage } from "./pages/LeaderboardPage";
+import { LeaderboardsPage, LeaderboardTable } from "./pages/LeaderboardPage";
 
 function App() {
   return (
@@ -61,9 +61,14 @@ function App() {
                   <IntroPage />
               } />
             <Route
-              path="/leaderboard"
+              path="/leaderboards"
               element={
                   <LeaderboardsPage/>
+              } />
+            <Route
+              path="/leaderboards/:leaderboardType"
+              element={
+                  <LeaderboardTable/> 
               } />
           </Routes>
         </BrowserRouter>
