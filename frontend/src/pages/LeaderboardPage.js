@@ -205,13 +205,13 @@ function LeaderboardsPage() {
   const fetchLeaderboards = useCallback(async () => {
     setLoading(true);
     try {
-      const previewsResponse = await axios.get(`${API_URL}/leaderboard/previews`, {
+      const previewsResponse = await axios.get(`${API_URL}/leaderboards/previews`, {
         withCredentials: true,
       });
       setPreviews(previewsResponse.data);
 
       if (user) {
-        const userRankingsResponse = await axios.get(`${API_URL}/leaderboard/user/rankings`, {
+        const userRankingsResponse = await axios.get(`${API_URL}/leaderboards/user/rankings`, {
           withCredentials: true,
         });
         setUserRankings(userRankingsResponse.data);
