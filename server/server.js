@@ -19,6 +19,7 @@ import userModel from "./config/db.js";
 import webpush from "web-push";
 import { authenticateToken } from "./middleware/jwtAuth.js";
 import leaderboardRouter from "./config/leaderboards.js";
+import { fileURLToPath } from "url";
 
 const app = express();
 env.config();
@@ -171,4 +172,13 @@ export { io, userSockets };
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
+});
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(express.static(path.join(__dirname, 'build')));
+
+app.get('/*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
