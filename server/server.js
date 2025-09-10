@@ -42,7 +42,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions)); // enable preflight for all routes
+app.options("*", cors(corsOptions));
 
 app.use(
   helmet({
@@ -67,33 +67,22 @@ app.get("/test-cors", (req, res) => {
   res.json({ msg: "CORS is working 🎉" });
 });
 
-app.get("/", (req, res) => {
-  res.send("Listning to the route !");
-});
-
 app.get("/uploads", (req, res) => {
-  console.log("efgf");
   res.send("uploads found");
 });
 
 app.get("/uploads/:filename", (req, res) => {
   const decodedFilename = decodeURIComponent(req.params.filename);
   const filePath = path.join(process.cwd(), "uploads", decodedFilename);
-  console.log("Checking uploads file");
-  console.log("Looking for file:", filePath);
-
   if (!fs.existsSync(filePath)) {
-    console.log("File not found:", filePath);
     return res.status(404).json({ detail: "File not found" });
   }
 
-  // ✅ Set CORS headers explicitly for the file response
   res.header("Access-Control-Allow-Origin", "http://localhost:3000");
   res.header("Access-Control-Allow-Methods", "GET");
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.header("Access-Control-Allow-Credentials", "true");
 
-  // Serve file inline
   res.sendFile(filePath, { headers: { "Content-Disposition": "inline" } });
 });
 
@@ -122,14 +111,18 @@ app.post("/subscribe", authenticateToken, async (req, res) => {
   }
 });
 
+// IMPORTANT: Define __dirname and the static/catch-all routes here
+// This must be AFTER all API routes but BEFORE the server creation
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-app.use(express.static(path.join(__dirname, "build")));
+app.use(express.static(path.join(__dirname, "..", "client", "build")));
 
 app.get("/*", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "client", "build", "index.html"));
 });
+
+// Now, create the server and Socket.IO instance
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -141,20 +134,16 @@ const io = new Server(server, {
   path: "/socket.io",
 });
 
-// ✅ New: Store a mapping of user IDs to their socket IDs
 const userSockets = {};
 
-// Handle WebSocket connections
 io.on("connection", (socket) => {
   console.log("🔌 User connected:", socket.id);
 
-  // ✅ NEW: Listen for 'register-user' event from frontend
   socket.on("register-user", (userId) => {
     userSockets[userId] = socket.id;
     console.log(`✅ User ${userId} registered with socket ${socket.id}`);
   });
 
-  // When frontend joins a specific thread room
   socket.on("join-thread", (threadId) => {
     socket.join(threadId);
     console.log(`✅ User ${socket.id} joined thread ${threadId}`);
@@ -163,7 +152,6 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("❌ User disconnected:", socket.id);
 
-    // ✅ NEW: Clean up the userSockets map on disconnect
     for (const userId in userSockets) {
       if (userSockets[userId] === socket.id) {
         delete userSockets[userId];
@@ -174,10 +162,8 @@ io.on("connection", (socket) => {
   });
 });
 
-// ✅ Export io and the new userSockets map
 export { io, userSockets };
 
-// --- Start server ---
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
