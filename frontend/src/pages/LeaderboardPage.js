@@ -115,7 +115,7 @@ const LeaderboardTable = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <Button
-        onClick={() => navigate('/leaderboards')}
+        onClick={() => navigate('/leaderboard')}
         variant="outline"
         className="mb-6 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
       >
@@ -205,13 +205,13 @@ function LeaderboardsPage() {
   const fetchLeaderboards = useCallback(async () => {
     setLoading(true);
     try {
-      const previewsResponse = await axios.get(`${API_URL}/leaderboards/previews`, {
+      const previewsResponse = await axios.get(`${API_URL}/leaderboard/previews`, {
         withCredentials: true,
       });
       setPreviews(previewsResponse.data);
 
       if (user) {
-        const userRankingsResponse = await axios.get(`${API_URL}/leaderboards/user/rankings`, {
+        const userRankingsResponse = await axios.get(`${API_URL}/leaderboard/user/rankings`, {
           withCredentials: true,
         });
         setUserRankings(userRankingsResponse.data);
@@ -273,13 +273,13 @@ function LeaderboardsPage() {
           title="All-Time"
           data={previews.alltime}
           metricName="Credits"
-          link="/leaderboards/alltime"
+          link="/leaderboard/alltime"
         />
         <LeaderboardCard
           title="Weekly"
           data={previews.weekly}
           metricName="Credits"
-          link="/leaderboards/weekly"
+          link="/leaderboard/weekly"
         />
         <LeaderboardCard
           title="Most Upvoted"

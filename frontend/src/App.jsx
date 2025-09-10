@@ -58,17 +58,21 @@ function App() {
             <Route
               path="/"
               element={
-                  <IntroPage />
+                <IntroPage />
               } />
             <Route
-              path="/leaderboards"
+              path="/leaderboard"
               element={
-                  <LeaderboardsPage/>
+                <ProtectedRoute>
+                  <LeaderboardsPage />
+                </ProtectedRoute>
               } />
             <Route
-              path="/leaderboards/:leaderboardType"
+              path="/leaderboard/:leaderboardType"
               element={
-                  <LeaderboardTable/> 
+                <ProtectedRoute>
+                  <LeaderboardTable />
+                </ProtectedRoute>
               } />
           </Routes>
         </BrowserRouter>
