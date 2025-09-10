@@ -18,6 +18,7 @@ import fs from "fs";
 import userModel from "./config/db.js";
 import webpush from "web-push";
 import { authenticateToken } from "./middleware/jwtAuth.js";
+import leaderboardRouter from "./config/leaderboards.js";
 
 const app = express();
 env.config();
@@ -104,6 +105,7 @@ app.use("/rewards", rewardRouter);
 app.use("/verify-google", verifyGoogle);
 app.use("/signin", signin);
 app.use("/cancel-pending", cancelPending);
+app.use("/leaderboards", leaderboardRouter);
 app.post("/subscribe", authenticateToken, async (req, res) => {
   try {
     const user = await userModel.findById(req.user.id);

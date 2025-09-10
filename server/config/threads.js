@@ -76,6 +76,7 @@ threadRouter.post(
 
       // ✅ CORE FIX: Give credits to the author of the best answer and save
       author.credits += 25;
+      author.bestAnswerCount += 1;
       await author.save();
 
       // Emit real-time updates for best answer and profile credits
@@ -133,7 +134,7 @@ threadRouter.get("/:id", async (req, res) => {
     const thread = await Thread.findById(req.params.id)
       .populate("author", "username")
       .lean();
-    console.log("Threads : ", thread);
+    // console.log("Threads : ", thread);
     if (!thread) return res.status(404).json({ detail: "Thread not found" });
 
     const responseCount = await Response.countDocuments({ thread: thread._id });
@@ -303,20 +304,6 @@ threadRouter.post(
   }
 );
 
-// app.get("/uploads/:filename", (req, res) => {
-//   const filePath = path.join(process.cwd(), "uploads", req.params.filename);
-
-//   if (!fs.existsSync(filePath)) {
-//     return res.status(404).json({ detail: "File not found" });
-//   }
-
-//   // Serve file inline (so browser can preview it) or as attachment
-//   res.sendFile(filePath, { headers: { "Content-Disposition": "inline" } });
-// });
-
-// POST /responses/:id/vote
-// POST /responses/:id/vote
-// POST /responses/:id/vote
 threadRouter.post(
   "/responses/:id/vote",
   authenticateToken,
@@ -354,7 +341,8 @@ threadRouter.post(
           .status(403)
           .json({ detail: "You cannot vote on your own response." });
       }
-
+      const votedUser = await userModel.findById(response.author);
+      console.log("Voted user : ", votedUser);
       if (existingVoteIndex !== -1) {
         const existingVote = response.voters[existingVoteIndex];
 
@@ -362,30 +350,53 @@ threadRouter.post(
           // Same vote clicked → undo
           if (vote_type === "up") {
             response.thumbs_up -= 1;
+            votedUser.credits -= 5;
           }
-          if (vote_type === "down") response.thumbs_down -= 1;
+          if (vote_type === "down") {
+            response.thumbs_down -= 1;
+            votedUser.credits += 2;
+          }
 
           response.voters.splice(existingVoteIndex, 1); // remove vote
         } else {
           // Switch vote
-          if (existingVote.voteType === "up") response.thumbs_up -= 1;
-          if (existingVote.voteType === "down") response.thumbs_down -= 1;
+          if (existingVote.voteType === "up") {
+            response.thumbs_up -= 1;
+            votedUser.credits -= 5;
+          }
+          if (existingVote.voteType === "down") {
+            response.thumbs_down -= 1;
+            votedUser.credits += 2;
+          }
 
-          if (voteType === "up") response.thumbs_up += 1;
-          if (voteType === "down") response.thumbs_down += 1;
+          if (voteType === "up") {
+            response.thumbs_up += 1;
+            votedUser.credits += 5;
+          }
+          if (voteType === "down") {
+            response.thumbs_down += 1;
+            votedUser.credits -= 2;
+          }
 
           response.voters[existingVoteIndex].voteType = vote_type; // update vote
         }
       } else {
         // First-time vote
-        if (voteType === "up") response.thumbs_up += 1;
-        if (voteType === "down") response.thumbs_down += 1;
+        if (voteType === "up") {
+          response.thumbs_up += 1;
+          votedUser.credits += 5;
+        }
+        if (voteType === "down") {
+          response.thumbs_down += 1;
+          votedUser.credits -= 2;
+        }
         console.log("Voters before save:", response.voters);
         response.voters.push({ user: userId, voteType });
       }
       // console.log("Response : ", response)
 
       await response.save();
+      await votedUser.save();
       io.to(response._id.toString()).emit("credits-updated", {
         credits: response.credits,
         rank: response.rank,

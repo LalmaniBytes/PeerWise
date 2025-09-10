@@ -1,7 +1,7 @@
 import express from "express";
 import { authenticateToken } from "../middleware/jwtAuth.js";
 import { error } from "console";
-import { Response, Thread} from "../config/db.js";
+import { Response, Thread } from "../config/db.js";
 import userModel from "../config/db.js";
 import bcrypt from "bcrypt";
 
@@ -20,34 +20,22 @@ profile.get("/", authenticateToken, async (req, res) => {
     const user = await userModel.findById(req.user.id).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // ✅ Calculate user stats from the database
+    // The credits field is now the single source of truth
     const questionsAsked = await Thread.countDocuments({ author: user._id });
     const answersGiven = await Response.countDocuments({ author: user._id });
 
-    // This is a more direct way to calculate credits
-    const userResponses = await Response.find({ author: user._id });
-    let totalCredits = 0;
-    let bestAnswerCount = 0;
+    // The values are already stored on the user object
+    const bestAnswerCount = user.bestAnswerCount;
+    const totalCredits = user.credits;
+    const rank = user.rank;
 
-    userResponses.forEach((response) => {
-      totalCredits += response.thumbs_up * 5;
-      totalCredits -= response.thumbs_down * 2;
-
-      // Assuming best answer count is based on a specific criteria,
-      // for example, a high upvote count. This is a placeholder.
-      // A more robust method would be to have a 'isBestAnswer' field.
-      if (response.thumbs_up > 10) {
-        bestAnswerCount++;
-      }
-    });
-
-    // ✅ The final response object with all new and old fields
     res.json({
       ...user.toObject(),
       questionsAsked,
       answersGiven,
       bestAnswerCount,
-      totalCredits, // You should update the user's credits field in the database when votes happen
+      totalCredits,
+      rank,
     });
   } catch (err) {
     console.error("Profile fetch error:", err);

@@ -71,6 +71,10 @@ const userSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false }, // whether Gmail has been confirmed via OAuth
   verifiedAt: { type: Date }, // when Gmail was verified
   googleId: { type: String },
+  bestAnswerCount: {
+    type: Number,
+    default: 0,
+  },
 });
 const userModel = mongoose.model("User", userSchema);
 

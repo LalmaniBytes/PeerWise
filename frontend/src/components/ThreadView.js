@@ -1,10 +1,17 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Sparkles, ThumbsUp, ThumbsDown, Play, Star } from "lucide-react"; // ✅ Imported Star icon
+import {
+  Sparkles,
+  ThumbsUp,
+  ThumbsDown,
+  Play,
+  Star,
+  Share2,
+} from "lucide-react";
 import { useAuth } from "../AuthContext";
 import { Input } from "./ui/input";
 import { formatThreadTime } from "../lib/utils";
@@ -29,10 +36,9 @@ function ThreadView() {
   const [file, setFile] = useState(null);
   const fileInputRef = useRef(null);
   const { user, fetchProfile } = useAuth();
-  // ✅ New state to track if a best answer has been selected
   const [hasBestAnswer, setHasBestAnswer] = useState(false);
 
-  const fetchThreadDetails = async (id) => {
+  const fetchThreadDetails = useCallback(async (id) => {
     try {
       const response = await axios.get(`${API_URL}/threads/${id}`, {
         withCredentials: true,
@@ -42,91 +48,120 @@ function ThreadView() {
       console.error("Failed to fetch thread details:", error);
       toast.error("Failed to load thread details. It may not exist.");
     }
-  };
+  }, []);
 
-  const fetchResponsesForThread = async (id) => {
+  const fetchResponsesForThread = useCallback(async (id) => {
     try {
       const response = await axios.get(`${API_URL}/threads/${id}/responses`, {
         withCredentials: true,
       });
       setResponses(response.data);
-      // ✅ Check if a best answer exists in the fetched responses
       setHasBestAnswer(response.data.some((r) => r.isBestAnswer));
     } catch (error) {
       console.error("Failed to fetch responses:", error);
     }
-  };
-  const handleBestAnswer = async (responseId) => {
-    try {
-      await axios.post(
-        `${API_URL}/threads/responses/${responseId}/best-answer`,
-        {},
-        { withCredentials: true }
-      );
-      toast.success(
-        "Best answer awarded! +25 credits awarded to the author. 🎉"
-      );
-      fetchResponsesForThread(threadId); // Refresh responses
-      fetchProfile(); // Refresh user credits and stats
-    } catch (error) {
-      console.error("Error awarding best answer:", error);
-      toast.error(
-        error.response?.data?.detail || "Failed to award best answer."
-      );
-    }
-  };
-  useEffect(() => {
-    if (threadId) {
-      fetchThreadDetails(threadId);
-      fetchResponsesForThread(threadId);
-    }
-  }, [threadId, fetchResponsesForThread, fetchThreadDetails]);
-  // ✅ New function to handle marking a best answer
+  }, []);
 
-  const handleResponseSubmit = async (e) => {
-    e.preventDefault();
-    if (!newResponse.trim() && !file) return;
-    try {
-      const formData = new FormData();
-      formData.append("content", newResponse);
-      if (file) formData.append("file", file);
-      await axios.post(`${API_URL}/threads/${threadId}/responses`, formData, {
-        withCredentials: true,
-      });
-      toast.success("Response posted! 💡");
-      setNewResponse("");
-      setFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+  const handleBestAnswer = useCallback(
+    async (responseId) => {
+      try {
+        await axios.post(
+          `${API_URL}/threads/responses/${responseId}/best-answer`,
+          {},
+          { withCredentials: true }
+        );
+        toast.success(
+          "Best answer awarded! +25 credits awarded to the author. 🎉"
+        );
+        fetchResponsesForThread(threadId);
+        fetchProfile();
+      } catch (error) {
+        console.error("Error awarding best answer:", error);
+        toast.error(
+          error.response?.data?.detail || "Failed to award best answer."
+        );
       }
-      fetchResponsesForThread(threadId);
-    } catch (error) {
-      toast.error("Failed to post response");
-    }
-  };
+    },
+    [fetchResponsesForThread, fetchProfile, threadId]
+  );
 
-  const handleVote = async (responseId, voteType) => {
-    try {
-      await axios.post(
-        `${API_URL}/threads/responses/${responseId}/vote`,
-        { vote_type: voteType },
-        { withCredentials: true }
-      );
-      toast.success(
-        voteType === "up"
-          ? "Thanks for the thumbs up! 👍"
-          : "Thanks for the feedback! 👎"
-      );
-      fetchResponsesForThread(threadId);
-      await fetchProfile();
-    } catch (error) {
-      console.error("Vote error:", error);
-      toast.error(error.response?.data?.detail || "Failed to vote");
-    }
-  };
+  const handleResponseSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+      if (!newResponse.trim() && !file) return;
+      try {
+        const formData = new FormData();
+        formData.append("content", newResponse);
+        if (file) formData.append("file", file);
+        await axios.post(`${API_URL}/threads/${threadId}/responses`, formData, {
+          withCredentials: true,
+        });
+        toast.success("Response posted! 💡");
+        setNewResponse("");
+        setFile(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+        fetchResponsesForThread(threadId);
+      } catch (error) {
+        toast.error("Failed to post response");
+      }
+    },
+    [newResponse, file, threadId, fetchResponsesForThread]
+  );
+
+  const handleVote = useCallback(
+    async (responseId, voteType) => {
+      try {
+        await axios.post(
+          `${API_URL}/threads/responses/${responseId}/vote`,
+          { vote_type: voteType },
+          { withCredentials: true }
+        );
+        toast.success(
+          voteType === "up"
+            ? "Thanks for the thumbs up! 👍"
+            : "Thanks for the feedback! 👎"
+        );
+        fetchResponsesForThread(threadId);
+        await fetchProfile();
+      } catch (error) {
+        console.error("Vote error:", error);
+        toast.error(error.response?.data?.detail || "Failed to vote");
+      }
+    },
+    [threadId, fetchResponsesForThread, fetchProfile]
+  );
 
   const handleBackButtonClick = () => {
     navigate("/threads");
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: selectedThread.title,
+      text: `Check out this problem on our app: ${selectedThread.title}`,
+      url: window.location.href,
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback for browsers that don't support Web Share API
+        const shareText = `${shareData.text} ${shareData.url}`;
+        const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+          shareText
+        )}`;
+        window.open(twitterUrl, "_blank");
+
+        // Also copy to clipboard as a bonus
+        await navigator.clipboard.writeText(shareData.url);
+        toast.info("Link copied to clipboard!");
+      }
+    } catch (err) {
+      console.error("Error sharing:", err);
+      toast.error("Failed to share.");
+    }
   };
 
   const formatThreadTime = (createdAt) => {
@@ -144,6 +179,13 @@ function ThreadView() {
       return created.toLocaleDateString();
     }
   };
+
+  useEffect(() => {
+    if (threadId) {
+      fetchThreadDetails(threadId);
+      fetchResponsesForThread(threadId);
+    }
+  }, [threadId, fetchThreadDetails, fetchResponsesForThread]);
 
   if (!selectedThread) {
     return (
@@ -163,10 +205,17 @@ function ThreadView() {
         ← Back to Problems
       </Button>
       <Card className="bg-black/50 border-cyan-500/20 backdrop-blur-xl mb-8">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-2xl text-white">
             {selectedThread.title}
           </CardTitle>
+          <Button
+            onClick={handleShare}
+            variant="ghost"
+            className="text-gray-400 hover:text-cyan-400"
+          >
+            <Share2 className="w-5 h-5" />
+          </Button>
         </CardHeader>
         <CardContent>
           <p className="text-gray-300 leading-relaxed">
