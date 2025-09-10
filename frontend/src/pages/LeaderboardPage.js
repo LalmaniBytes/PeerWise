@@ -285,13 +285,13 @@ function LeaderboardsPage() {
           title="Most Upvoted"
           data={previews.upvoted}
           metricName="Upvotes"
-          link="/leaderboards/upvoted"
+          link="/leaderboard/upvoted"
         />
         <LeaderboardCard
           title="Best Answer"
           data={previews.bestanswer}
           metricName="Best Answers"
-          link="/leaderboards/bestanswer"
+          link="/leaderboard/bestanswer"
         />
       </div>
     </div>
