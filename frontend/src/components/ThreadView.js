@@ -387,9 +387,11 @@ function ThreadView() {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-3">
                     <p className="text-sm text-gray-400">
+                      <Link to={`/publicProfile/${response.author._id}`}>
                       <span className="text-cyan-400 font-semibold">
                         {response.author.username}
                       </span>
+                      </Link>
                       <span className="ml-2 text-xs text-gray-500">
                         {formatThreadTime(response.createdAt)}
                       </span>
