@@ -8,16 +8,20 @@ import bcrypt from "bcrypt";
 const profile = express.Router();
 
 function calculateRank(credits) {
-  if (credits >= 1000) return "Diamond";
-  if (credits >= 500) return "Platinum";
-  if (credits >= 200) return "Gold";
-  if (credits >= 50) return "Silver";
-  return "Bronze";
+  if (credits > 5000) return "Elite Master";
+  if (credits > 2000) return "Sage";
+  if (credits > 500) return "Guru";
+  if (credits > 100) return "Scholar";
+  return "Newbies";
 }
 
 profile.get("/", authenticateToken, async (req, res) => {
   try {
-    const user = await userModel.findById(req.user.id).select("-password");
+    const user = await userModel
+      .findById(req.user.id)
+      .populate("badges")
+      .select("-password");
+
     if (!user) return res.status(404).json({ message: "User not found" });
 
     // The credits field is now the single source of truth
@@ -27,8 +31,7 @@ profile.get("/", authenticateToken, async (req, res) => {
     // The values are already stored on the user object
     const bestAnswerCount = user.bestAnswerCount;
     const totalCredits = user.credits;
-    const rank = user.rank;
-
+    const rank = calculateRank(totalCredits); 
     res.json({
       ...user.toObject(),
       questionsAsked,
@@ -36,6 +39,7 @@ profile.get("/", authenticateToken, async (req, res) => {
       bestAnswerCount,
       totalCredits,
       rank,
+      badges: user.badges,
     });
   } catch (err) {
     console.error("Profile fetch error:", err);
@@ -147,4 +151,7 @@ profile.put("/change-password", authenticateToken, async (req, res) => {
     res.status(500).json({ detail: "Failed to change password" });
   }
 });
+
+
+
 export default profile;

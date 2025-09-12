@@ -53,6 +53,7 @@ const AuthProvider = ({ children }) => {
   const fetchProfile = async () => {
     try {
       const response = await axios.get(`${API_URL}/profile`, { withCredentials: true });
+      console.log("Profile data fetched:", response.data);
       setUser({ ...response.data, rank: response.data.rank, claimedRank: response.data.claimedRank });
       if (!response.data.isVerified && response.data.justSignedUp) {
         setPendingEmail(response.data.email);

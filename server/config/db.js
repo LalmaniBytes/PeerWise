@@ -39,6 +39,18 @@ const responseSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+const badgeSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  description: { type: String, required: true },
+  imageUrl: { type: String, required: true },
+  rewardId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Reward",
+    required: true,
+  },
+});
+
+const Badge = mongoose.model("Badge", badgeSchema);
 
 const Response = mongoose.model("Response", responseSchema);
 
@@ -75,16 +87,52 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  badges: [{ type: mongoose.Schema.Types.ObjectId, ref: "Badge" }],
+  title: { type: String, default: "None" },
 });
 const userModel = mongoose.model("User", userSchema);
 
 const rewardSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  description: { type: String },
-  cost: { type: Number, required: true }, // credits required to redeem
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
+  name: {
+    type: String,
+    required: true,
+  },
+  description: {
+    type: String,
+  },
+  cost: {
+    type: Number,
+    required: true,
+    min: 0, // Prevents negative costs
+  },
+  type: {
+    type: String,
+    enum: ["title", "merchandise"],
+    required: true,
+  },
+  badge: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Badge",
+    required: function () {
+      return this.type === "title";
+    },
+  },
+  imageUrl: {
+    type: String,
+    required: function () {
+      return this.type === "merchandise";
+    },
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
+
 const Reward = mongoose.model("Reward", rewardSchema);
 
 const pendingUserSchema = new mongoose.Schema(
@@ -100,5 +148,5 @@ const pendingUserSchema = new mongoose.Schema(
 
 const PendingUser = mongoose.model("PendingUser", pendingUserSchema);
 
-export { Thread, Response, Reward, PendingUser };
+export { Thread, Response, Reward, PendingUser, Badge };
 export default userModel;

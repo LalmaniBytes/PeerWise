@@ -9,6 +9,23 @@ const leaderboardRouter = express.Router();
 // Helper function to get leaderboard data using aggregation
 const getLeaderboardData = async (metricType, limit = 100) => {
   let pipeline = [];
+  const rankCalculationPipeline = [
+    {
+      $addFields: {
+        rank: {
+          $switch: {
+            branches: [
+              { case: { $gt: ["$metric", 5000] }, then: "Elite Master" },
+              { case: { $gt: ["$metric", 2000] }, then: "Sage" },
+              { case: { $gt: ["$metric", 500] }, then: "Guru" },
+              { case: { $gt: ["$metric", 100] }, then: "Scholar" },
+            ],
+            default: "Newbies",
+          },
+        },
+      },
+    },
+  ];
 
   if (metricType === "alltime") {
     // Pipeline for All-Time (based on user credits field)
@@ -20,10 +37,10 @@ const getLeaderboardData = async (metricType, limit = 100) => {
           _id: 1,
           username: 1,
           profilePicture: 1,
-          rank: 1,
           metric: "$credits",
         },
       },
+      ...rankCalculationPipeline,
     ];
   } else if (metricType === "upvoted") {
     // Pipeline for Most Upvoted (aggregating from responses)
@@ -50,10 +67,10 @@ const getLeaderboardData = async (metricType, limit = 100) => {
           _id: "$authorDetails._id",
           username: "$authorDetails.username",
           profilePicture: "$authorDetails.profilePicture",
-          rank: "$authorDetails.rank",
           metric: 1,
         },
       },
+      ...rankCalculationPipeline,
     ];
   } else if (metricType === "bestanswer") {
     // Pipeline for Best Answer (aggregating from responses)
@@ -81,10 +98,10 @@ const getLeaderboardData = async (metricType, limit = 100) => {
           _id: "$authorDetails._id",
           username: "$authorDetails.username",
           profilePicture: "$authorDetails.profilePicture",
-          rank: "$authorDetails.rank",
           metric: 1,
         },
       },
+      ...rankCalculationPipeline,
     ];
   } else if (metricType === "weekly") {
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -127,17 +144,15 @@ const getLeaderboardData = async (metricType, limit = 100) => {
           _id: "$authorDetails._id",
           username: "$authorDetails.username",
           profilePicture: "$authorDetails.profilePicture",
-          rank: "$authorDetails.rank",
           metric: 1,
         },
       },
+      ...rankCalculationPipeline,
     ];
   } else {
     return [];
   }
 
-  // If the metric is coming from the Response model, use Response.aggregate.
-  // If it's coming from the User model, use userModel.aggregate.
   if (metricType === "alltime") {
     return await userModel.aggregate(pipeline).exec();
   } else {
@@ -208,4 +223,4 @@ leaderboardRouter.get("/user/rankings", authenticateToken, async (req, res) => {
   }
 });
 
-export default leaderboardRouter;
+export default leaderboardRouter; 

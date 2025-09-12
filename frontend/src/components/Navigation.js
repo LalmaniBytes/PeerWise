@@ -103,7 +103,7 @@ function Navigation() {
                     <UserIcon className="w-4 h-4" />
                     <span>Profile</span>
                   </Link>
-                  <Link to="/threads" onClick={() => setIsClickOpen(false)} className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-300 hover:bg-cyan-500/10 hover:text-cyan-400 transition-colors">
+                  <Link to="/dashboard" onClick={() => setIsClickOpen(false)} className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-300 hover:bg-cyan-500/10 hover:text-cyan-400 transition-colors">
                     <Zap className="w-4 h-4" />
                     <span>Dashboard</span>
                   </Link>

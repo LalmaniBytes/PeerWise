@@ -419,5 +419,56 @@ threadRouter.post(
     }
   }
 );
+threadRouter.delete("/:id", authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const thread = await Thread.findById(id);
+
+    if (!thread) {
+      return res.status(404).json({ detail: "Thread not found." });
+    }
+    if (thread.author.toString() !== userId.toString()) {
+      return res
+        .status(403)
+        .json({ detail: "You do not have permission to delete this thread." });
+    }
+
+    const responsesToDelete = await Response.find({ thread: id });
+    for (const response of responsesToDelete) {
+      if (response.isBestAnswer) {
+        const author = await userModel.findById(response.author);
+        if (author) {
+          author.credits = Math.max(0, author.credits - 25);
+          author.bestAnswerCount = Math.max(0, author.bestAnswerCount - 1);
+          await author.save();
+        }
+      }
+      for (const voter of response.voters) {
+        const author = await userModel.findById(response.author);
+        if (author) {
+          if (voter.voteType === "up") {
+            author.credits = Math.max(0, author.credits - 5);
+          } else if (voter.voteType === "down") {
+            author.credits = Math.max(0, author.credits + 2);
+          }
+          await author.save();
+        }
+      }
+    }
+    await Response.deleteMany({ thread: id });
+    await Thread.findByIdAndDelete(id);
+
+    res
+      .status(200)
+      .json({
+        detail: "Thread and all associated responses deleted successfully.",
+      });
+  } catch (err) {
+    console.error("Error deleting thread:", err);
+    res.status(500).json({ detail: "Failed to delete thread." });
+  }
+});
 
 export default threadRouter;

@@ -13,7 +13,10 @@ import { ThreadView } from "./components/ThreadView";
 import RewardsPage from "./pages/RewardsPage";
 import ProfilePage from "./pages/ProfilePage";
 import IntroPage from "./pages/IntroPage";
-import { LeaderboardsPage, LeaderboardTable } from "./pages/LeaderboardPage";
+import {  LeaderboardTable } from "./components/Leaderboard";
+import TitleDashboardPage from "./pages/TitleDashboardPage";
+import LeaderboardPage from "./pages/LeaderboardPage";
+import PublicProfile from "./pages/PublicProfile";
 
 function App() {
   return (
@@ -62,9 +65,9 @@ function App() {
               } />
             <Route
               path="/leaderboard"
-              element={ 
+              element={
                 <ProtectedRoute>
-                  <LeaderboardsPage />
+                  <LeaderboardPage />
                 </ProtectedRoute>
               } />
             <Route
@@ -72,6 +75,20 @@ function App() {
               element={
                 <ProtectedRoute>
                   <LeaderboardTable />
+                </ProtectedRoute>
+              } />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <TitleDashboardPage />
+                </ProtectedRoute>
+              } />
+            <Route
+              path="/publicProfile/:userId"
+              element={
+                <ProtectedRoute>
+                  <PublicProfile/>
                 </ProtectedRoute>
               } />
           </Routes>

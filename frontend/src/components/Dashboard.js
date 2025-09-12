@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { useAuth } from "../AuthContext";
@@ -6,7 +6,7 @@ import { useSocket } from "../hooks/useSocket";
 import { Navigation } from "./Navigation";
 import { CreateThreadDialog } from "./CreateThreadDialog";
 import { ThreadList } from "./ThreadList";
-// Correctly import RewardsPage and other components
+import RewardsPage from "../pages/RewardsPage"; // ✅ Import the RewardsPage component
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { useNavigate } from "react-router-dom";
 
@@ -15,14 +15,13 @@ const API_URL = process.env.REACT_APP_API_URL;
 function Dashboard() {
   const navigate = useNavigate();
   const [threads, setThreads] = useState([]);
-  const [rewards, setRewards] = useState([]);
-  const { user, fetchProfile } = useAuth();
+  const { user } = useAuth(); // Removed the rewards state
   const socket = useSocket(null);
 
   useEffect(() => {
     if (user) {
       fetchThreads();
-      fetchRewards();
+      // ✅ Removed fetchRewards() here, as RewardsPage will handle its own data
     }
   }, [user]);
 
@@ -38,19 +37,10 @@ function Dashboard() {
 
   const fetchThreads = async () => {
     try {
-      const response = await axios.get(`${API_URL}/threads`);
+      const response = await axios.get(`${API_URL}/threads`, { withCredentials: true });
       setThreads(response.data);
     } catch (error) {
       console.error("Failed to fetch threads:", error);
-    }
-  };
-
-  const fetchRewards = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/rewards`);
-      setRewards(response.data);
-    } catch (error) {
-      console.error("Failed to fetch rewards:", error);
     }
   };
 
@@ -58,25 +48,7 @@ function Dashboard() {
     navigate(`/threads/${thread._id}`);
   };
 
-  const claimRank = async (rank) => {
-    try {
-      await axios.post(`${API_URL}/profile/claim`, { rank });
-      toast.success(`You claimed ${rank} 🎉`);
-      fetchProfile();
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to claim rank");
-    }
-  };
-
-  const handleRewardRedeem = async (rewardId) => {
-    try {
-      await axios.post(`${API_URL}/rewards/${rewardId}/redeem`);
-      toast.success("Reward redeemed successfully! 🎉");
-      fetchProfile();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to redeem reward");
-    }
-  };
+  // ✅ Removed handleRewardRedeem and claimRank functions, they now live inside RewardsPage
 
   return (
     <div className="min-h-screen bg-black">
@@ -91,12 +63,11 @@ function Dashboard() {
             >
               Problems
             </TabsTrigger>
-            {/* We'll use a link to the new rewards page now */}
+            {/* ✅ This button now just switches the tab */}
             <TabsTrigger
               value="rewards"
               className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400"
               data-testid="rewards-tab"
-              onClick={() => navigate("/rewards")}
             >
               Rewards
             </TabsTrigger>
@@ -117,6 +88,10 @@ function Dashboard() {
               threads={threads}
               handleThreadClick={handleThreadClick}
             />
+          </TabsContent>
+          {/* ✅ New TabsContent section for rewards */}
+          <TabsContent value="rewards">
+            <RewardsPage />
           </TabsContent>
         </Tabs>
       </div>

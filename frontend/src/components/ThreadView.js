@@ -11,13 +11,45 @@ import {
   Play,
   Star,
   Share2,
+  MoreVertical,
+  Trash,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 import { useAuth } from "../AuthContext";
 import { Input } from "./ui/input";
 import { formatThreadTime } from "../lib/utils";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 
 const API_URL = process.env.REACT_APP_API_URL;
+
+// Reusing the rank coloring function you provided
+const getRankColoring = (rank) => {
+  switch (rank) {
+    case "Elite Master":
+      return "bg-gradient-to-r from-yellow-300 to-amber-500 text-white w-fit px-2 py-0.5 rounded-md text-xs font-semibold shadow-md shadow-amber-500/50";
+    case "Sage":
+      return "bg-gradient-to-r from-gray-300 to-gray-500 text-white w-fit px-2 py-0.5 rounded-md text-xs font-semibold shadow-md shadow-gray-500/50";
+    case "Guru":
+      return "bg-gradient-to-r from-purple-500 to-blue-500 text-white w-fit px-2 py-0.5 rounded-md text-xs font-semibold shadow-md shadow-purple-500/50";
+    case "Scholar":
+      return "bg-gradient-to-r from-blue-500 to-cyan-500 text-white w-fit px-2 py-0.5 rounded-md text-xs font-semibold shadow-md shadow-blue-500/50";
+    case "Newbie":
+      return "bg-gradient-to-r from-green-500 to-lime-500 text-white w-fit px-2 py-0.5 rounded-md text-xs font-semibold shadow-md shadow-lime-500/50";
+    default:
+      return "";
+  }
+};
 
 const isYouTubeUrl = (url) =>
   /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)/i.test(url);
@@ -136,7 +168,25 @@ function ThreadView() {
   const handleBackButtonClick = () => {
     navigate("/threads");
   };
-
+  const handleDeleteThread = useCallback(async () => {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this thread? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
+    try {
+      await axios.delete(`${API_URL}/threads/${threadId}`, {
+        withCredentials: true,
+      });
+      toast.success("Thread deleted successfully. Goodbye! 👋");
+      navigate("/threads"); // Navigate back to the main threads page
+    } catch (error) {
+      console.error("Error deleting thread:", error);
+      toast.error(error.response?.data?.detail || "Failed to delete thread.");
+    }
+  }, [threadId, navigate]);
   const handleShare = async () => {
     const shareData = {
       title: selectedThread.title,
@@ -147,14 +197,12 @@ function ThreadView() {
       if (navigator.share) {
         await navigator.share(shareData);
       } else {
-        // Fallback for browsers that don't support Web Share API
         const shareText = `${shareData.text} ${shareData.url}`;
         const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
           shareText
         )}`;
         window.open(twitterUrl, "_blank");
 
-        // Also copy to clipboard as a bonus
         await navigator.clipboard.writeText(shareData.url);
         toast.info("Link copied to clipboard!");
       }
@@ -197,27 +245,98 @@ function ThreadView() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <Button
-        onClick={handleBackButtonClick}
-        variant="outline"
-        className="mb-6 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
-      >
-        ← Back to Problems
-      </Button>
+      <div className="flex justify-between items-center mb-6">
+        <Button
+          onClick={handleBackButtonClick}
+          variant="outline"
+          className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+        >
+          ← Back to Problems
+        </Button>
+      </div>
       <Card className="bg-black/50 border-cyan-500/20 backdrop-blur-xl mb-8">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-2xl text-white">
             {selectedThread.title}
           </CardTitle>
-          <Button
-            onClick={handleShare}
-            variant="ghost"
-            className="text-gray-400 hover:text-cyan-400"
-          >
-            <Share2 className="w-5 h-5" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="h-8 w-8 p-0 text-gray-400 hover:bg-cyan-500/10"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-black border-cyan-500/20">
+              <DropdownMenuItem
+                onClick={handleShare}
+                className="flex items-center space-x-2 text-white hover:text-cyan-400 cursor-pointer"
+              >
+                <Share2 className="w-4 h-4" />
+                <span>Share</span>
+              </DropdownMenuItem>
+              {selectedThread?.author?._id === user?._id && (
+                <DropdownMenuItem
+                  onClick={handleDeleteThread}
+                  className="flex items-center space-x-2 text-red-400 hover:text-red-300 cursor-pointer"
+                >
+                  <Trash className="w-4 h-4" />
+                  <span>Delete</span>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </CardHeader>
         <CardContent>
+          {/* Author's Identity Section */}
+          <div className="flex items-center space-x-3 mb-4">
+            <img
+              src={
+                selectedThread.author?.profilePicture ||
+                "https://placehold.co/40x40/155e75/E2E8F0?text=A"
+              }
+              alt={selectedThread.author?.username}
+              className="w-10 h-10 rounded-full object-cover"
+            />
+            <div className="flex flex-col">
+              <Link to={`/publicProfile/${selectedThread.author?._id}`}>
+                <div className="flex items-center space-x-2">
+                  <span className="font-semibold text-white hover:text-cyan-400">
+                    {selectedThread.author?.username}
+                  </span>
+                  {/* Title/Rank Display */}
+                  <div
+                    className={`text-sm font-bold p-1 rounded-full text-center ${getRankColoring(
+                      selectedThread.author?.rank
+                    )}`}
+                  >
+                    {selectedThread.author?.rank}
+                  </div>
+                  {/* Badges Display */}
+                  <TooltipProvider>
+                    {selectedThread.author?.badges?.map((badge) => (
+                      <Tooltip key={badge._id}>
+                        <TooltipTrigger asChild>
+                          <img
+                            src={badge.imageUrl}
+                            alt={badge.name}
+                            className="w-5 h-5 rounded-full object-cover"
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{badge.name}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </TooltipProvider>
+                </div>
+              </Link>
+              <span className="text-xs text-gray-500">
+                Posted {formatThreadTime(selectedThread.createdAt)}
+              </span>
+            </div>
+          </div>
           <p className="text-gray-300 leading-relaxed">
             {selectedThread.description}
           </p>

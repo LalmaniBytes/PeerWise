@@ -6,8 +6,7 @@ import signup from "./auth/signup.js";
 import login from "./auth/login.js";
 import profile from "./auth/profile.js";
 import threads from "./config/threads.js";
-import router from "./routes/forum.js";
-import rewardRouter from "./config/rewards.js";
+// import router from "./routes/forum.js";
 import http from "http";
 import { Server } from "socket.io";
 import verifyGoogle from "./auth/verify-google.js";
@@ -20,6 +19,8 @@ import webpush from "web-push";
 import { authenticateToken } from "./middleware/jwtAuth.js";
 import leaderboardRouter from "./config/leaderboards.js";
 import { fileURLToPath } from "url";
+import rewardRoute from "./routes/rewards.js";
+import publicProfile from "./auth/publicProfile.js";
 
 const app = express();
 env.config();
@@ -90,13 +91,14 @@ app.use("/signup", signup);
 app.use("/login", cors(corsOptions), login);
 app.use("/profile", profile);
 app.use("/threads", threads);
-app.use("/", router);
-app.use("/rewards", rewardRouter);
+// app.use("/", router);
 app.use("/verify-google", verifyGoogle);
 app.use("/signin", signin);
 app.use("/cancel-pending", cancelPending);
 app.use("/leaderboards", leaderboardRouter);
-app.post("/subscribe", authenticateToken, async (req, res) => {
+app.use('/rewards'  , rewardRoute)
+app.use('/publicProfile' , publicProfile)
+app.post("/subscribe", authenticateToken , async (req, res) => {
   try {
     const user = await userModel.findById(req.user.id);
     if (!user) {
@@ -152,8 +154,8 @@ io.on("connection", (socket) => {
 });
 
 export { io, userSockets };
-
-const PORT = process.env.PORT || 5000;
+console.log("Server is about to listen for requests.");
+const PORT = process.env.PORT || 5050;
 server.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
