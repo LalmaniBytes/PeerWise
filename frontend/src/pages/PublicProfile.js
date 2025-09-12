@@ -26,10 +26,23 @@ import {
   TooltipTrigger,
 } from "../components/ui/tooltip";
 import { Navigation } from "../components/Navigation";
+import punditBadge from '../media/pundit.png'
+import luminaryBadge from '../media/luminary.png'
+import mavenBadge from '../media/maven.png'
+import sentinelBadge from '../media/sentinel.png'
+import loremavenBadge from '../media/loremaven.png'
 
 const API_URL = process.env.REACT_APP_API_URL;
 
-// Reusing the getRankColoring function from our previous conversation
+const badgeImages = {
+  Pundit: punditBadge,
+  Luminary: luminaryBadge,
+  Maven: mavenBadge,
+  Sentinel: sentinelBadge,
+  LoreMaven: loremavenBadge,
+};
+//
+
 const getRankColoring = (rank) => {
   switch (rank) {
     case "Elite Master":
@@ -188,7 +201,7 @@ function PublicProfilePage() {
                     <Tooltip key={badge._id}>
                       <TooltipTrigger asChild>
                         <img
-                          src={badge.imageUrl}
+                          src={badgeImages[badge.name] || badge.imageUrl}
                           alt={badge.name}
                           className="w-16 h-16 rounded-full border-2 border-cyan-400 object-cover transform transition-transform duration-300 hover:scale-110 cursor-pointer"
                         />

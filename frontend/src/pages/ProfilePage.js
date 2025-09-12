@@ -39,6 +39,19 @@ import {
 
 import { useAuth } from "../AuthContext";
 import { Navigation } from "../components/Navigation";
+import punditBadge from '../media/pundit.png'
+import luminaryBadge from '../media/luminary.png'
+import mavenBadge from '../media/maven.png'
+import sentinelBadge from '../media/sentinel.png'
+import loremavenBadge from '../media/loremaven.png'
+
+const badgeImages = {
+  Pundit: punditBadge,
+  Luminary: luminaryBadge,
+  Maven: mavenBadge,
+  Sentinel: sentinelBadge,
+  LoreMaven: loremavenBadge,
+};
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -360,7 +373,7 @@ function ProfilePage() {
                       <Tooltip key={badge._id}>
                         <TooltipTrigger asChild>
                           <img
-                            src={badge.imageUrl}
+                            src={badgeImages[badge.name] || badge.imageUrl}
                             alt={badge.name}
                             className="w-16 h-16 rounded-full border-2 border-cyan-400 object-cover transform transition-transform duration-300 hover:scale-110"
                           />

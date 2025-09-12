@@ -22,9 +22,22 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../components/ui/tooltip";
+import punditBadge from '../media/pundit.png'
+import luminaryBadge from '../media/luminary.png'
+import mavenBadge from '../media/maven.png'
+import sentinelBadge from '../media/sentinel.png'
+import loremavenBadge from '../media/loremaven.png'
+
 
 const API_URL = process.env.REACT_APP_API_URL;
 
+const badgeImages = {
+  Pundit: punditBadge,
+  Luminary: luminaryBadge,
+  Maven: mavenBadge,
+  Sentinel: sentinelBadge,
+  LoreMaven: loremavenBadge,
+};
 // Reusable function to get icons for rewards
 const getIconForReward = (reward) => {
   if (reward.type === "title") {
@@ -56,12 +69,6 @@ const getIconForReward = (reward) => {
   }
 };
 
-// Fallback mock data for development
-const mockRewards = [
-  { _id: "1", name: "The Pundit", description: "A title for the wise.", cost: 1500, type: "title", badge: { imageUrl: "https://placehold.co/40x40/155e75/E2E8F0?text=P" } },
-  { _id: "2", name: "The Luminary", description: "A title for the brilliant.", cost: 2000, type: "title", badge: { imageUrl: "https://placehold.co/40x40/1e293b/a5f3fc?text=L" } },
-  { _id: "3", name: "Platform-Branded T-Shirt", description: "Wear your pride!", cost: 10000, type: "merchandise", imageUrl: "https://placehold.co/100x100/1e293b/a5f3fc?text=T-Shirt" },
-];
 
 function RewardsPage() {
   const { user, fetchProfile, setUser } = useAuth();
@@ -173,7 +180,7 @@ function RewardsPage() {
                   <Tooltip key={badge._id}>
                     <TooltipTrigger asChild>
                       <img
-                        src={badge.imageUrl}
+                        src={badgeImages[badge.name] || badge.imageUrl}
                         alt={badge.name}
                         className="w-16 h-16 rounded-full border-2 border-cyan-400 object-cover transform transition-transform duration-300 hover:scale-110 cursor-pointer"
                       />

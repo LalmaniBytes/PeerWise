@@ -3,6 +3,19 @@ import React from 'react';
 import { Star } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import punditBadge from '../media/pundit.png'
+import luminaryBadge from '../media/luminary.png'
+import mavenBadge from '../media/maven.png'
+import sentinelBadge from '../media/sentinel.png'
+import loremavenBadge from '../media/loremaven.png'
+
+const badgeImages = {
+  Pundit: punditBadge,
+  Luminary: luminaryBadge,
+  Maven: mavenBadge,
+  Sentinel: sentinelBadge,
+  LoreMaven: loremavenBadge,
+};
 
 function BadgesSection({ badges }) {
   return (
@@ -21,7 +34,7 @@ function BadgesSection({ badges }) {
                 <Tooltip key={badge._id}>
                   <TooltipTrigger asChild>
                     <img
-                      src={badge.imageUrl}
+                      src={badgeImages[badge.name] || badge.imageUrl}
                       alt={badge.name}
                       className="w-16 h-16 rounded-full border-2 border-cyan-400 object-cover transform transition-transform duration-300 hover:scale-110"
                     />
