@@ -152,6 +152,37 @@ profile.put("/change-password", authenticateToken, async (req, res) => {
   }
 });
 
+profile.delete("/delete-account", authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+  try {
+    // 1. Find the user to ensure it exists
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ detail: "User not found." });
+    }
+
+    // 2. Delete all responses written by the user
+    await Response.deleteMany({ author: userId });
+    
+    // 3. Delete all threads started by the user
+    await Thread.deleteMany({ author: userId });
+    
+    // 4. Clean up the user's votes from other responses
+    // This prevents orphaned votes and maintains data integrity
+    await Response.updateMany(
+      { "voters.user": userId },
+      { $pull: { voters: { user: userId } } }
+    );
+    
+    // 5. Delete the user document itself
+    await userModel.findByIdAndDelete(userId);
+
+    res.status(200).json({ detail: "Account and all associated data deleted successfully." });
+  } catch (err) {
+    console.error("Account deletion error:", err);
+    res.status(500).json({ detail: "Failed to delete account." });
+  }
+});
 
 
 export default profile;

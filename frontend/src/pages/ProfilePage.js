@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { Button } from "../components/ui/button";
+import { Button ,} from "../components/ui/button";
+import { Trash } from "lucide-react";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import {
@@ -227,6 +228,18 @@ function ProfilePage() {
   if (!userData) {
     return null;
   }
+  const handleDeleteAccount = async () => {
+    if (!window.confirm("Are you sure you want to delete your account? This action is permanent and cannot be undone.")) {
+        return;
+    }
+    try {
+        await axios.delete(`${API_URL}/profile/delete-account`, { withCredentials: true });
+        toast.success("Your account has been deleted. Goodbye! 👋");
+        navigate('/')
+    } catch (err) {
+        toast.error(err.response?.data?.detail || "Failed to delete account.");
+    }
+};
 
   return (
     <TooltipProvider>
@@ -438,6 +451,20 @@ function ProfilePage() {
                   className="bg-gradient-to-r from-cyan-500 to-green-500 hover:from-cyan-400 hover:to-green-400 text-black font-semibold"
                 >
                   View
+                </Button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="flex items-center space-x-2">
+                  <Trash className="w-4 h-4 text-red-400" />
+                  <span className="text-red-400">Delete Account</span>
+                </span>
+                <Button
+                  onClick={handleDeleteAccount}
+                  variant="destructive"
+                  size="sm"
+                  className="bg-red-500/30 text-red-400 hover:bg-red-500/50"
+                >
+                  Confirm
                 </Button>
               </div>
             </CardContent>
