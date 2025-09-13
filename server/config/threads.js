@@ -128,6 +128,75 @@ threadRouter.get("/", async (req, res) => {
   }
 });
 
+// threadsRouter.js
+
+// Updated GET /threads/search route
+threadRouter.get("/search", async (req, res) => {
+  const searchTerm = req.query.q;
+
+  if (!searchTerm) {
+    // If no search term, return all threads and no users
+    const threads = await Thread.find()
+      .populate("author", "username")
+      .sort({ createdAt: -1 })
+      .lean();
+    const threadsWithExtras = await Promise.all(
+      threads.map(async (t) => {
+        const responseCount = await Response.countDocuments({ thread: t._id });
+        return {
+          ...t,
+          author_username: t.author ? t.author.username : "Unknown",
+          response_count: responseCount,
+        };
+      })
+    );
+    return res.json({ threads: threadsWithExtras, users: [] });
+  }
+
+  try {
+    const searchRegex = new RegExp(searchTerm, "i"); // Search for threads
+
+    const threads = await Thread.find({
+      $or: [{ title: searchRegex }, { description: searchRegex }],
+    })
+      .populate("author", "username")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const formattedThreads = await Promise.all(
+      threads.map(async (t) => {
+        const responseCount = await Response.countDocuments({ thread: t._id });
+        return {
+          _id: t._id,
+          title: t.title,
+          description: t.description,
+          createdAt: t.createdAt,
+          author_username: t.author ? t.author.username : "Unknown",
+          response_count: responseCount,
+        };
+      })
+    ); // Search for users based on username
+
+    const users = await userModel
+      .find({
+        username: searchRegex,
+      })
+      .lean(); // Only send back the required user data
+
+    const formattedUsers = users.map((user) => ({
+      _id: user._id,
+      username: user.username,
+      credits: user.credits, 
+      title : user.title,
+      rank : user.rank
+    })); // Return a single object containing both threads and users
+
+    res.json({ threads: formattedThreads, users: formattedUsers });
+  } catch (err) {
+    console.error("Error searching threads and users:", err);
+    res.status(500).json({ detail: "Failed to perform search" });
+  }
+});
 // GET /threads/:id
 threadRouter.get("/:id", async (req, res) => {
   try {
@@ -460,11 +529,9 @@ threadRouter.delete("/:id", authenticateToken, async (req, res) => {
     await Response.deleteMany({ thread: id });
     await Thread.findByIdAndDelete(id);
 
-    res
-      .status(200)
-      .json({
-        detail: "Thread and all associated responses deleted successfully.",
-      });
+    res.status(200).json({
+      detail: "Thread and all associated responses deleted successfully.",
+    });
   } catch (err) {
     console.error("Error deleting thread:", err);
     res.status(500).json({ detail: "Failed to delete thread." });

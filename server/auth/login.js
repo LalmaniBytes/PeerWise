@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import userModel from "../config/db.js";
 import bcrypt from "bcryptjs";
+import { PendingUser } from "../config/db.js";
 
 const login = express.Router();
 
@@ -16,6 +17,13 @@ login.post("/", async (req, res) => {
 
   try {
     const user = await userModel.findOne({ email });
+    const pendingUser = await PendingUser.findOne({ email });
+    if (pendingUser) {
+      return res.status(401).json({
+        detail: "Please verify your Gmail to complete registration.", // Send back the user data to pre-populate the verification screen
+        user: { email: pendingUser.email },
+      });
+    }
 
     if (!user) {
       return res.status(403).json({ message: "No such user found!" });

@@ -1,24 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from './ui/button';
-import { User, Trophy, Zap, ChevronDown, User as UserIcon, Trophy as TrophyIcon, Bell } from 'lucide-react';
+import { Input } from './ui/input';
+import { User, Trophy, Zap, ChevronDown, Bell, Search, Menu, TrophyIcon, LogOut } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 
-function Navigation() {
+function Navigation({searchInputRef}) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isHoverOpen, setIsHoverOpen] = useState(false);
   const [isClickOpen, setIsClickOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef(null);
+  const [searchParams] = useSearchParams();
 
-  // useEffect hook to handle clicks outside the dropdown
+  // Sync local search state with URL on initial load
+  useEffect(() => {
+    setSearchQuery(searchParams.get('q') || '');
+  }, [searchParams]);
+
+  // Handle clicks outside the dropdown to close it
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsClickOpen(false); // Close the dropdown if click is outside
+        setIsClickOpen(false);
       }
     }
-    // Only add the listener when the dropdown is open due to a click
     if (isClickOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
@@ -27,29 +35,51 @@ function Navigation() {
     };
   }, [isClickOpen]);
 
+  // Dropdown handlers
   const handleDropdownClick = () => {
-    setIsClickOpen(!isClickOpen); // Toggle the click-based state
-    setIsHoverOpen(false); // Close hover dropdown if open
+    setIsClickOpen(!isClickOpen);
+    setIsHoverOpen(false);
   };
-
   const handleMouseEnter = () => {
-    if (!isClickOpen) { // Don't open on hover if already open from a click
+    if (!isClickOpen) {
       setIsHoverOpen(true);
     }
   };
-
   const handleMouseLeave = () => {
-    setIsHoverOpen(false); // Close hover dropdown
+    setIsHoverOpen(false);
+  };
+  const isDropdownVisible = isHoverOpen || isClickOpen;
+
+  // Debounced search handler
+  const debounceTimeoutRef = useRef(null);
+  const handleSearchChange = (e) => {
+    const newQuery = e.target.value;
+    setSearchQuery(newQuery);
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    debounceTimeoutRef.current = setTimeout(() => {
+      if (newQuery.trim()) {
+        navigate(`/threads?q=${newQuery}`);
+      } else {
+        navigate('/threads');
+      }
+    }, 500);
   };
 
-  const isDropdownVisible = isHoverOpen || isClickOpen;
-  
-  // Placeholder state and function for notifications
-  const [unreadNotifications, setUnreadNotifications] = useState(0); 
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/threads?q=${searchQuery}`);
+    } else {
+      navigate('/threads');
+    }
+    setIsMobileMenuOpen(false);
+  };
+
   const handleBellClick = () => {
-      console.log("Notification bell clicked! Navigating to notifications page.");
-      // For now, this just logs a message. You can add navigation here later.
-      // navigate('/notifications');
+    // Add navigation to notifications page here
+    setIsMobileMenuOpen(false);
   };
 
   return (
@@ -65,84 +95,143 @@ function Navigation() {
               PeerWise
             </Link>
           </div>
+          
+          {/* Search bar for desktop */}
+          <div className="hidden md:flex flex-1 mx-8">
+            <form onSubmit={handleSearchSubmit} className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <Input
+                type="text"
+                placeholder="Search problems..."
+                value={searchQuery}
+                ref={searchInputRef}
+                onChange={handleSearchChange}
+                className="w-full pl-10 pr-4 bg-black/50 border-cyan-500/30 text-white placeholder:text-gray-500 focus:border-cyan-400"
+              />
+            </form>
+          </div>
 
           <div className="flex items-center space-x-4">
-            {/* User Credits Display */}
-            <div className="flex items-center space-x-2 bg-black/50 px-3 py-1 rounded-full border border-cyan-500/30">
-              <Trophy className="w-4 h-4 text-cyan-400" />
-              <span className="text-cyan-400 font-semibold" data-testid="user-credits">{user?.credits || 0}</span>
-            </div>
-
-            {/* Dropdown Menu for User (hybrid hover and click) */}
-            <div
-              className="relative"
-              ref={dropdownRef}
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-            >
-              <div
-                className="flex items-center space-x-2 text-white cursor-pointer hover:text-cyan-400 transition-colors"
-                onClick={handleDropdownClick}
-              >
-                <UserIcon className="w-4 h-4" />
-                <span>
-                  {user?.username}{" "}
-                  {user?.claimedRank === "Diamond" && "💎"}
-                  {user?.claimedRank === "Platinum" && "💠"}
-                  {user?.claimedRank === "Gold" && "🥇"}
-                  {user?.claimedRank === "Silver" && "🥈"}
-                  {user?.claimedRank === "Bronze" && "🥉"}
-                </span>
-                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isDropdownVisible ? 'rotate-180' : 'rotate-0'}`} />
-              </div>
-
-              {/* Dropdown Menu Content */}
-              {isDropdownVisible && (
-                <div className="absolute right-0 mt-2 w-48 bg-black/90 border border-cyan-500/20 backdrop-blur-xl rounded-md shadow-lg py-1 z-50">
-                  <Link to="/profile" onClick={() => setIsClickOpen(false)} className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-300 hover:bg-cyan-500/10 hover:text-cyan-400 transition-colors">
-                    <UserIcon className="w-4 h-4" />
-                    <span>Profile</span>
-                  </Link>
-                  <Link to="/dashboard" onClick={() => setIsClickOpen(false)} className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-300 hover:bg-cyan-500/10 hover:text-cyan-400 transition-colors">
-                    <Zap className="w-4 h-4" />
-                    <span>Dashboard</span>
-                  </Link>
-                  <Link to="/leaderboard" onClick={() => setIsClickOpen(false)} className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-300 hover:bg-cyan-500/10 hover:text-cyan-400 transition-colors">
-                    <TrophyIcon className="w-4 h-4" />
-                    <span>Leaderboard</span>
-                  </Link>
-                  <div className="border-t border-cyan-500/20 my-1"></div>
-                  <button onClick={() => { logout(); setIsClickOpen(false); }} className="flex items-center w-full space-x-2 px-4 py-2 text-sm text-gray-300 hover:bg-red-500/20 hover:text-red-400 transition-colors">
-                    <span>Logout</span>
-                  </button>
-                </div>
-              )}
-            </div>
-            
-            {/* New Notification Bell Icon and Button */}
-            <div className="relative">
-                <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 relative"
-                    onClick={handleBellClick}
-                >
-                    <Bell className="h-4 w-4" />
-                    {unreadNotifications > 0 && (
-                        <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500 border border-black" />
+            {user ? (
+              <>
+                {/* Desktop Menu */}
+                <div className="relative hidden md:flex items-center space-x-4">
+                  <div className="flex items-center space-x-2 bg-black/50 px-3 py-1 rounded-full border border-cyan-500/30">
+                    <TrophyIcon className="w-4 h-4 text-cyan-400" />
+                    <span className="text-cyan-400 font-semibold" data-testid="user-credits">{user?.credits || 0}</span>
+                  </div>
+                  <div
+                    className="relative"
+                    ref={dropdownRef}
+                    onMouseEnter={handleMouseEnter}
+                    onMouseLeave={handleMouseLeave}
+                  >
+                    <div
+                      className="flex items-center space-x-2 text-white cursor-pointer hover:text-cyan-400 transition-colors"
+                      onClick={handleDropdownClick}
+                    >
+                      <User className="w-4 h-4" />
+                      <span>{user?.username}</span>
+                      <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isDropdownVisible ? 'rotate-180' : 'rotate-0'}`} />
+                    </div>
+                    {isDropdownVisible && (
+                      <div className="absolute right-0 mt-2 w-48 bg-black/90 border border-cyan-500/20 backdrop-blur-xl rounded-md shadow-lg py-1 z-50">
+                        <Link to="/profile" onClick={() => setIsClickOpen(false)} className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-300 hover:bg-cyan-500/10 hover:text-cyan-400 transition-colors">
+                          <User className="w-4 h-4" />
+                          <span>Profile</span>
+                        </Link>
+                        <Link to="/dashboard" onClick={() => setIsClickOpen(false)} className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-300 hover:bg-cyan-500/10 hover:text-cyan-400 transition-colors">
+                          <Zap className="w-4 h-4" />
+                          <span>Dashboard</span>
+                        </Link>
+                        <Link to="/leaderboard" onClick={() => setIsClickOpen(false)} className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-300 hover:bg-cyan-500/10 hover:text-cyan-400 transition-colors">
+                          <TrophyIcon className="w-4 h-4" />
+                          <span>Leaderboard</span>
+                        </Link>
+                        <div className="border-t border-cyan-500/20 my-1"></div>
+                        <button onClick={() => { logout(); setIsClickOpen(false); }} className="flex items-center w-full space-x-2 px-4 py-2 text-sm text-gray-300 hover:bg-red-500/20 hover:text-red-400 transition-colors">
+                          <LogOut className="w-4 h-4 mr-2" />
+                          <span>Logout</span>
+                        </button>
+                      </div>
                     )}
+                  </div>
+                  <Button variant="ghost" size="icon" className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 relative" onClick={handleBellClick}>
+                    <Bell className="h-4 w-4" />
+                    {user?.unreadNotifications > 0 && <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500 border border-black" />}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <Link to="/auth">
+                <Button className="bg-gradient-to-r from-cyan-500 to-green-500 text-black font-semibold hover:from-cyan-400 hover:to-green-400">
+                  Sign In
                 </Button>
-            </div>
-
-            {/* Logout Button (kept for mobile/non-dropdown scenarios) */}
-            <Button onClick={logout} variant="outline" size="sm" className="hidden sm:inline-flex border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10">
-              Logout
+              </Link>
+            )}
+            
+            {/* Mobile menu button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden text-white"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              <Menu className="w-6 h-6" />
             </Button>
           </div>
+        </div>
+        
+        {/* Mobile search bar (visible on mobile only) */}
+        <div className="md:hidden px-4 pb-2">
+          <form onSubmit={handleSearchSubmit} className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <Input
+              type="text"
+              placeholder="Search problems..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="w-full pl-10 pr-4 bg-black/50 border-cyan-500/30 text-white placeholder:text-gray-500 focus:border-cyan-400"
+            />
+          </form>
+        </div>
+
+        {/* Mobile menu content (collapsed) */}
+        <div className={`md:hidden ${isMobileMenuOpen ? 'block' : 'hidden'} py-2 px-4`}>
+          {user && (
+            <div className="flex flex-col space-y-2 mt-2">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2 bg-black/50 px-3 py-1 rounded-full border border-cyan-500/30">
+                  <TrophyIcon className="w-4 h-4 text-cyan-400" />
+                  <span className="text-cyan-400 font-semibold">{user?.credits || 0}</span>
+                </div>
+                <Button variant="ghost" size="icon" className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 relative" onClick={handleBellClick}>
+                  <Bell className="h-4 w-4" />
+                  {user?.unreadNotifications > 0 && <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500 border border-black" />}
+                </Button>
+              </div>
+              <Link to="/profile" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-300 hover:bg-cyan-500/10 hover:text-cyan-400 transition-colors">
+                <User className="w-4 h-4" />
+                <span>Profile</span>
+              </Link>
+              <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-300 hover:bg-cyan-500/10 hover:text-cyan-400 transition-colors">
+                <Zap className="w-4 h-4" />
+                <span>Dashboard</span>
+              </Link>
+              <Link to="/leaderboard" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-300 hover:bg-cyan-500/10 hover:text-cyan-400 transition-colors">
+                <TrophyIcon className="w-4 h-4" />
+                <span>Leaderboard</span>
+              </Link>
+              <div className="border-t border-cyan-500/20 my-1"></div>
+              <button onClick={() => { logout(); setIsMobileMenuOpen(false); }} className="flex items-center w-full space-x-2 px-4 py-2 text-sm text-gray-300 hover:bg-red-500/20 hover:text-red-400 transition-colors">
+                <LogOut className="w-4 h-4 mr-2" />
+                <span>Logout</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </nav>
   );
-}
-
+};
 export { Navigation };

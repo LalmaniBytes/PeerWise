@@ -6,68 +6,99 @@ import { useSocket } from "../hooks/useSocket";
 import { Navigation } from "./Navigation";
 import { CreateThreadDialog } from "./CreateThreadDialog";
 import { ThreadList } from "./ThreadList";
-import RewardsPage from "../pages/RewardsPage"; // ✅ Import the RewardsPage component
+import RewardsPage from "../pages/RewardsPage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import UserCard from "./UserCard";
+import { useRef } from "react";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
 function Dashboard() {
   const navigate = useNavigate();
   const [threads, setThreads] = useState([]);
-  const { user } = useAuth(); // Removed the rewards state
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const socket = useSocket(null);
+  const searchInputRef = useRef(null);
+
+  const searchTerm = searchParams.get("q");
+  useEffect(() => {
+    const handleKeyPress = (event) => {
+      if (
+        event.key === '/' &&
+        document.activeElement.tagName !== 'INPUT' &&
+        document.activeElement.tagName !== 'TEXTAREA'
+      ) {
+        event.preventDefault();
+        searchInputRef.current?.focus(); // Focus the search bar
+      }
+    };
+    document.addEventListener('keydown', handleKeyPress);
+    return () => {
+      document.removeEventListener('keydown', handleKeyPress);
+    };
+  }, []);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      let url = `${API_URL}/threads`;
+      if (searchTerm) {
+        url = `${API_URL}/threads/search?q=${searchTerm}`;
+      }
+
+      const response = await axios.get(url, { withCredentials: true });
+
+      if (searchTerm) {
+        setThreads(response.data.threads);
+        setUsers(response.data.users);
+      } else {
+        setThreads(response.data);
+        setUsers([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+      toast.error("Failed to load content.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
-      fetchThreads();
-      // ✅ Removed fetchRewards() here, as RewardsPage will handle its own data
+      fetchData();
     }
-  }, [user]);
+  }, [user, searchTerm]);
 
   useEffect(() => {
     if (!socket) return;
     socket.on("new-thread", (newThread) => {
-      setThreads((prev) => [newThread, ...prev]);
+      if (!searchTerm) {
+        setThreads((prev) => [newThread, ...prev]);
+      }
     });
     return () => {
       socket.off("new-thread");
     };
-  }, [socket]);
-
-  const fetchThreads = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/threads`, { withCredentials: true });
-      setThreads(response.data);
-    } catch (error) {
-      console.error("Failed to fetch threads:", error);
-    }
-  };
-
-  const handleThreadClick = (thread) => {
-    navigate(`/threads/${thread._id}`);
-  };
-
-  // ✅ Removed handleRewardRedeem and claimRank functions, they now live inside RewardsPage
+  }, [socket, searchTerm]);
 
   return (
     <div className="min-h-screen bg-black">
-      <Navigation />
+      <Navigation searchInputRef={searchInputRef} />
       <div className="max-w-7xl mx-auto px-4 py-8">
         <Tabs defaultValue="problems" className="space-y-8">
           <TabsList className="bg-black/50 border border-cyan-500/20">
             <TabsTrigger
               value="problems"
               className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400"
-              data-testid="problems-tab"
             >
               Problems
             </TabsTrigger>
-            {/* ✅ This button now just switches the tab */}
             <TabsTrigger
               value="rewards"
               className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400"
-              data-testid="rewards-tab"
             >
               Rewards
             </TabsTrigger>
@@ -82,14 +113,49 @@ function Dashboard() {
                   Help solve problems and earn credits for your expertise!
                 </p>
               </div>
-              <CreateThreadDialog onThreadCreated={fetchThreads} />
+              <CreateThreadDialog onThreadCreated={fetchData} />
             </div>
-            <ThreadList
-              threads={threads}
-              handleThreadClick={handleThreadClick}
-            />
+            {loading ? (
+              <p className="text-white text-center">Loading...</p>
+            ) : (
+              // Start of the streamlined rendering logic
+              <div className="space-y-6">
+                {users.length > 0 && (
+                  <div>
+                    <h2 className="text-xl font-bold text-white mb-4">
+                      Users Found
+                    </h2>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {users.map((user) => (
+                        <UserCard key={user._id} user={user} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {threads.length > 0 && (
+                  <div>
+                    {users.length > 0 && (
+                      <h2 className="text-xl font-bold text-white mb-4">
+                        Threads Found
+                      </h2>
+                    )}
+                    <ThreadList threads={threads} />
+                  </div>
+                )}
+                {users.length === 0 && threads.length === 0 && searchTerm && (
+                  <p className="text-white text-center">
+                    No results found for "{searchTerm}".
+                  </p>
+                )}
+                {!searchTerm && threads.length === 0 && !loading && (
+                  <p className="text-white text-center">
+                    No threads available. Be the first to ask!
+                  </p>
+                )}
+              </div>
+              // End of the streamlined rendering logic
+            )}
           </TabsContent>
-          {/* ✅ New TabsContent section for rewards */}
           <TabsContent value="rewards">
             <RewardsPage />
           </TabsContent>

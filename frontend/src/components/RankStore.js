@@ -59,4 +59,4 @@ function RankStore({ user, claimRank }) {
   );
 }
 
-export { RankStore }; // This is the crucial change
+export { RankStore }; 

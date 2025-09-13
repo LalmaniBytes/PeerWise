@@ -19,7 +19,7 @@ function calculateRank(credits) {
 // ✅ Corrected route definition to accept an ID parameter
 publicProfile.get("/:id", async (req, res) => {
   const id = req.params.id;
-    console.log("Id : " , id)
+  console.log("Id : ", id);
   try {
     if (!id || id.length !== 24) {
       return res.status(400).json({ message: "Invalid user ID" });
@@ -45,14 +45,18 @@ publicProfile.get("/:id", async (req, res) => {
     const bestAnswerCount = user.bestAnswerCount || 0;
     const totalCredits = user.credits;
     const rank = calculateRank(totalCredits);
-
+    const newRank = calculateRank(totalCredits);
+    if (user.rank !== newRank) {
+      user.rank = newRank;
+      await user.save();
+    }
     // Respond with the public profile data
     res.json({
       _id: user._id,
       username: user.username,
       profilePicture: user.profilePicture,
       bio: user.bio,
-      rank,
+      rank: user.rank,
       questionsAsked,
       answersGiven,
       totalUpvotes,
